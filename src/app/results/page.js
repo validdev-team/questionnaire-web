@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 
 export default function ResultsPage() {
@@ -9,8 +9,21 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchResults();
-  }, []);
+    const unsubscribe = onSnapshot(collection(db, 'questions'), (snapshot) => {
+        const questionList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+        }));
+        setQuestions(questionList);
+        setLoading(false);
+    }, (error) => {
+        console.error('Error fetching realtime results:', error);
+        setLoading(false);
+    });
+
+    // Clean up listener on unmount
+    return () => unsubscribe();
+    }, []);
 
   const fetchResults = async () => {
     try {
