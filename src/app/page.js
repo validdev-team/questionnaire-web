@@ -1,103 +1,179 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useState, useEffect } from 'react';
+import {
+  collection,
+  getDocs,
+  addDoc,
+  doc,
+  updateDoc,
+  increment,
+  getDoc
+} from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+export default function UserQuestionnaire() {
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchQuestions();
+  }, []);
+
+  const fetchQuestions = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'questions'));
+      const questionList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setQuestions(questionList);
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAnswerChange = (questionId, choiceIndex) => {
+    setAnswers(prev => {
+      const current = prev[questionId] || [];
+      if (current.includes(choiceIndex)) {
+        return {
+          ...prev,
+          [questionId]: current.filter(idx => idx !== choiceIndex)
+        };
+      } else {
+        return {
+          ...prev,
+          [questionId]: [...current, choiceIndex]
+        };
+      }
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (submitting) return;
+    setSubmitting(true);
+
+    try {
+      await addDoc(collection(db, 'responses'), {
+        answers,
+        timestamp: new Date()
+      });
+
+      for (const [questionId, selectedChoices] of Object.entries(answers)) {
+        const questionRef = doc(db, 'questions', questionId);
+        const questionSnap = await getDoc(questionRef);
+        const questionData = questionSnap.data();
+
+        if (Array.isArray(questionData.choices)) {
+          const updatedChoices = [...questionData.choices];
+
+          // Increment votes for each choice
+          selectedChoices.forEach((choiceIndex) => {
+            updatedChoices[choiceIndex].votes =
+              (updatedChoices[choiceIndex].votes || 0) + 1;
+          });
+
+          // Increment responseCount once per question
+          await updateDoc(questionRef, {
+            choices: updatedChoices,
+            responseCount: increment(1)
+          });
+        }
+      }
+
+      setSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting response:', error);
+      alert('There was an error submitting your response.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <div className="text-green-500 text-6xl mb-4">✓</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Thank You!</h2>
+            <p className="text-gray-600 mb-6">Your response has been submitted successfully.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Submit Another Response
+            </button>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-2xl mx-auto px-4">
+        <div className="bg-white rounded-lg shadow p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">Survey Questions</h2>
+
+          {questions.length === 0 ? (
+            <p className="text-gray-600 text-center py-8">No questions available at the moment.</p>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {questions.map((question) => (
+                <div key={question.id} className="border-b border-gray-200 pb-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    {question.question}
+                  </h3>
+                  <div className="space-y-3">
+                    {question.choices?.map((choice, index) => (
+                      <label key={index} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          checked={answers[question.id]?.includes(index) || false}
+                          onChange={() => handleAnswerChange(question.id, index)}
+                        />
+                        <span className="ml-3 text-gray-700">{choice.text}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="pt-6">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className={`w-full font-bold py-3 px-4 rounded-lg transition duration-200 ${
+                    submitting
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  {submitting ? 'Submitting...' : 'Submit Survey'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
