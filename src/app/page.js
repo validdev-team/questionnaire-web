@@ -1,16 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  collection,
-  getDocs,
-  addDoc,
-  doc,
-  updateDoc,
-  increment,
-  getDoc
-} from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 
 export default function UserQuestionnaire() {
   const [questions, setQuestions] = useState([]);
@@ -25,14 +15,17 @@ export default function UserQuestionnaire() {
 
   const fetchQuestions = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'questions'));
-      const questionList = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setQuestions(questionList);
+      const response = await fetch('/api/questions');
+      if (!response.ok) {
+        throw new Error('Failed to fetch questions');
+      }
+      const data = await response.json();
+      console.log("questions fetched: ", data)
+      setQuestions(data);
+
     } catch (error) {
       console.error('Error fetching questions:', error);
+      setError('Failed to load questions. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -62,31 +55,19 @@ export default function UserQuestionnaire() {
     setSubmitting(true);
 
     try {
-      await addDoc(collection(db, 'responses'), {
-        answers,
-        timestamp: new Date()
+      const response = await fetch('/api/responses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          answers,
+          timestamp: new Date().toISOString()
+        }),
       });
 
-      for (const [questionId, selectedChoices] of Object.entries(answers)) {
-        const questionRef = doc(db, 'questions', questionId);
-        const questionSnap = await getDoc(questionRef);
-        const questionData = questionSnap.data();
-
-        if (Array.isArray(questionData.choices)) {
-          const updatedChoices = [...questionData.choices];
-
-          // Increment votes for each choice
-          selectedChoices.forEach((choiceIndex) => {
-            updatedChoices[choiceIndex].votes =
-              (updatedChoices[choiceIndex].votes || 0) + 1;
-          });
-
-          // Increment responseCount once per question
-          await updateDoc(questionRef, {
-            choices: updatedChoices,
-            responseCount: increment(1)
-          });
-        }
+      if (!response.ok) {
+        throw new Error('Failed to submit response');
       }
 
       setSubmitted(true);
@@ -102,6 +83,26 @@ export default function UserQuestionnaire() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+    if (questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <div className="text-red-500 text-6xl mb-4">⚠</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Error</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
