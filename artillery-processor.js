@@ -1,10 +1,10 @@
 module.exports = {
-    generateAnswers
+    questions: generateAnswers
 };
 
 function generateAnswers(requestParams, context, ee, next) {
     // Retrieve the list of questions from context variables
-    const questions = context.vars.questions;
+    const questions = context.vars.questionsResponse;
 
     // Initialize an object to hold the generated answers
     const answers = {};
