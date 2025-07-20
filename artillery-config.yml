@@ -1,0 +1,26 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 5  # 5 seconds
+      arrivalRate: 2  # 2 users per second (5 secs * 2 users = 10 users)
+  processor: "./artillery-processor.js"
+
+scenarios:
+  - name: "Complete questionnaire flow"
+    flow:
+      - get:
+          url: "/api/questions"
+          capture:
+            - json: "$"
+              as: "questionsResponse"
+
+      - function: "questions"
+      - think: 2      # wait before answering
+
+      - post:
+          url: "/api/responses"
+          headers:
+            Content-Type: "application/json"
+          json:
+            answers: "{{ answers }}"
+            timestamp: "{{ timestamp }}"
