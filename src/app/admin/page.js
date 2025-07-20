@@ -10,10 +10,50 @@ export default function AdminPanel() {
   const [showForm, setShowForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     fetchQuestions();
   }, []);
+
+  const resetAllResponses = async () => {
+    if (!window.confirm('Are you sure you want to delete all responses and reset stats?')) return;
+
+    setResetting(true); // Start loading
+    try {
+      // 1. Delete all documents in "responses"
+      const responsesSnapshot = await getDocs(collection(db, 'responses'));
+      const deletePromises = responsesSnapshot.docs.map((docSnap) =>
+        deleteDoc(doc(db, 'responses', docSnap.id))
+      );
+      await Promise.all(deletePromises);
+
+      // 2. Reset vote counts and responseCount in "questions"
+      const questionsSnapshot = await getDocs(collection(db, 'questions'));
+      const resetPromises = questionsSnapshot.docs.map((docSnap) => {
+        const questionData = docSnap.data();
+
+        const resetChoices = questionData.choices.map((choice) => ({
+          ...choice,
+          votes: 0,
+        }));
+
+        return updateDoc(doc(db, 'questions', docSnap.id), {
+          choices: resetChoices,
+          responseCount: 0,
+        });
+      });
+
+      await Promise.all(resetPromises);
+
+      fetchQuestions(); // refresh table
+    } catch (error) {
+      console.error('Error resetting data:', error);
+      alert('Failed to reset responses');
+    } finally {
+      setResetting(false); // End loading
+    }
+  };
 
   const fetchQuestions = async () => {
     try {
@@ -67,6 +107,13 @@ export default function AdminPanel() {
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h2 className="text-xl font-semibold text-gray-900">All Questions</h2>
+            <button
+              onClick={resetAllResponses}
+              disabled={resetting}
+              className={`px-4 py-2 rounded-lg ${resetting ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'} text-white`}
+            >
+              {resetting ? 'Resetting...' : 'Reset Responses'}
+            </button>
             <button
               onClick={() => setShowForm(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
