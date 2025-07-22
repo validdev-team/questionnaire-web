@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 
 export default function ResultsPage() {
@@ -27,14 +27,19 @@ export default function ResultsPage() {
 
   const fetchResults = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'questions'));
-      const questionList = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setQuestions(questionList);
+      setError(null);
+      
+      const response = await fetch('/api/results');
+      const data = await response.json();
+      
+      if (data.success) {
+        setQuestions(data.data);
+      } else {
+        setError(data.error || 'Failed to fetch results');
+      }
     } catch (error) {
       console.error('Error fetching results:', error);
+      setError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
