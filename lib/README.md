@@ -14,7 +14,7 @@ Make sure you have the following installed:
 If Firebase CLI isn’t installed yet, run:
 
 ```bash
-npm install
+npm install -g firebase-tools
 ```
 
 Then log in to Firebase
