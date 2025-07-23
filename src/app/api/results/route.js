@@ -1,24 +1,22 @@
+// app/api/results/route.js
 import { NextResponse } from 'next/server';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
 
 export async function GET() {
     try {
-        // Fetch aggregated results from the aggregated_results collection
-        const querySnapshot = await getDocs(collection(db, 'aggregated_results'));
-        
-        // Collect results for each question
-        const resultList = querySnapshot.docs.map(doc => ({
+        const querySnapshot = await getDocs(collection(db, 'questions'));
+        const questionList = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
 
         return NextResponse.json({
             success: true,
-            data: resultList
+            data: questionList
         });
     } catch (error) {
-        console.error('Error fetching aggregated results:', error);
+        console.error('Error fetching results:', error);
         return NextResponse.json(
             {
                 success: false,
