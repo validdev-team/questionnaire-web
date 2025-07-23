@@ -1,46 +1,27 @@
 module.exports = {
-    questions: generateAnswers
-};
+    buildAnswers: function (userContext, events, done) {
+        const questions = userContext.vars.questionsData;
+        const answers = {};
 
-function generateAnswers(requestParams, context, ee, next) {
-    // Retrieve the list of questions from context variables
-    const questions = context.vars.questionsResponse;
-
-    // Initialize an object to hold the generated answers
-    const answers = {};
-
-    // Check if questions exist and are in array format
-    if (questions && Array.isArray(questions)) {
-        // Loop through each question
-        questions.forEach(question => {
-            // Ensure the question has a 'choices' array
+        for (const question of questions) {
             if (question.choices && Array.isArray(question.choices)) {
-                // Generate a random number between 1 and 3 (inclusive) for how many choices to select
-                const numChoices = Math.floor(Math.random() * 3) + 1;
-                const selectedChoices = [];
+                const totalChoices = question.choices.length;
 
-                // Randomly select unique choices
-                for (let i = 0; i < numChoices; i++) {
-                    const randomChoice = Math.floor(Math.random() * question.choices.length);
+                // Random number between 1 and totalChoices
+                const numToSelect = Math.floor(Math.random() * totalChoices) + 1;
 
-                    // Only add the choice if it hasn't already been selected
-                    if (!selectedChoices.includes(randomChoice)) {
-                        selectedChoices.push(randomChoice);
-                    }
+                const selectedIndexes = new Set();
+                while (selectedIndexes.size < numToSelect) {
+                    const randomIndex = Math.floor(Math.random() * totalChoices);
+                    selectedIndexes.add(randomIndex);
                 }
 
-                // Store selected choice indexes for the question using its ID
-                answers[question.id] = selectedChoices;
+                answers[question.id] = Array.from(selectedIndexes);
             }
-        });
+        }
+
+        userContext.vars.answers = answers;
+        userContext.vars.timestamp = new Date().toISOString();
+        return done();
     }
-
-    // Store the generated answers in context for future use
-    context.vars.answers = answers;
-
-    // Store a timestamp of when the answers were generated
-    context.vars.timestamp = new Date().toISOString();
-
-    // Proceed to the next function in the pipeline
-    return next();
-}
+};
