@@ -5,7 +5,6 @@ import {
     addDoc,
     doc,
     updateDoc,
-    increment,
     getDoc
 } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
@@ -50,7 +49,6 @@ export async function POST(request) {
                     }
                 });
 
-                // Increment responseCount once per question
                 await updateDoc(questionRef, {
                     choices: updatedChoices
                 });
