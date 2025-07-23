@@ -8,7 +8,7 @@ const LeafSegment = ({ leaf, onVoteReceived }) => {
     const animationRef = useRef(null);
 
     // Calculate leaf size based on vote count (grows with more votes)
-    const leafScale = 2.8 + (count / 10); // Adjust divisor to control growth rate
+    const leafScale = Math.min(2.6 + (count / 10), 3); // Adjust divisor to control growth rate
 
     // Handle new vote received
     const handleVote = () => {
@@ -16,6 +16,7 @@ const LeafSegment = ({ leaf, onVoteReceived }) => {
         triggerBounce();
         triggerAnimation();
         onVoteReceived?.(leaf.id, count + 1, leaf.animationFile);
+        console.log("LeafScale: ", leafScale)
     };
 
     // Trigger bounce animation by changing the key to force re-render
@@ -62,7 +63,7 @@ const LeafSegment = ({ leaf, onVoteReceived }) => {
                     <img
                         src={`/svg/${leaf.svgFile}`}
                         alt={`Leaf ${leaf.id}`}
-                        className="w-full h-full object-contain drop-shadow-lg"
+                        className="w-full h-full object-contain"
                         onError={(e) => {
                             console.error(`Failed to load leaf SVG: ${leaf.svgFile}`);
                             e.target.style.display = 'none';
@@ -71,13 +72,13 @@ const LeafSegment = ({ leaf, onVoteReceived }) => {
 
                     {/* Text Overlay on Leaf */}
                     <div className="absolute inset-0 top-2 flex flex-col items-center justify-center text-white text-center px-1">
-                        <div className="text-[4px] font-medium leading-tight mb-[1px] text-shadow">
+                        <div className="text-[4px] font-medium leading-tight mb-[1px]">
                             {leaf.question.length > 60 ?
                                 leaf.question.substring(0, 60) + '...' :
                                 leaf.question
                             }
                         </div>
-                        <div className="text-[6px] font-bold text-shadow">
+                        <div className="text-[6px] font-bold">
                             {count}
                         </div>
                     </div>

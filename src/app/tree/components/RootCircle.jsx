@@ -56,11 +56,11 @@ const RootCircle = ({ root, onVoteReceived }) => {
 
                 {/* Count Display */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white font-bold text-lg text-shadow">
+                    <span className="text-white font-bold text-lg">
                         {count}
                     </span>
                 </div>
-                <div className="text-[12px] font-medium leading-tight mb-[1px] text-center text-shadow">
+                <div className="text-[12px] font-medium leading-tight mb-[1px] text-center">
                     {root.question.length > 40 ?
                         root.question.substring(0, 40) + '...' :
                         root.question
