@@ -143,7 +143,7 @@ export default function UserQuestionnaire() {
   if (questions.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="bg-white rounded-md shadow p-8 text-center">
           <div className="text-red-500 text-6xl mb-4">⚠</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Error</h2>
           <p className="text-gray-600 mb-6">{error}</p>
@@ -162,7 +162,7 @@ export default function UserQuestionnaire() {
     return (
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-2xl mx-auto px-4">
-          <div className="bg-white rounded-lg shadow p-8 text-center">
+          <div className="bg-white rounded-md shadow p-8 text-center">
             <div className="text-green-500 text-6xl mb-4">✓</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Thank You!</h2>
             <p className="text-gray-600 mb-6">Your response has been submitted successfully.</p>
@@ -185,29 +185,29 @@ export default function UserQuestionnaire() {
     <div className="max-w-4xl mx-auto px-4 my-auto">
       {/* Question Header */}
       <div className="mb-8">
-        <p className="text-sm text-gray-600 mb-2">
+        <p className="text-sm mb-2">
           Question {currentQuestionIndex + 1}/{questions.length}
         </p>
-        <h2 className="text-2xl font-bold text-gray-900 leading-tight">
+        <h2 className="text-2xl font-bold leading-tight">
           {currentQuestion.question}
         </h2>
       </div>
 
       {/* Answer Options Grid */}
-      <div className="grid grid-cols-3 gap-4 mb-8 auto-rows-fr">
+      <div className="grid grid-cols-3 gap-2 mb-8 auto-rows-fr">
         {currentQuestion.choices?.map((choice, index) => {
           const isSelected = currentAnswers.includes(index);
           return (
             <button
               key={index}
               onClick={() => handleAnswerChange(currentQuestion.id, index)}
-              className={`p-3 rounded-lg border-2 transition-all duration-200 aspect-square flex items-center justify-center ${
+              className={`p-3 rounded-md border-1 transition-all duration-200 aspect-square flex items-center justify-center border-[#0F0251] ${
                 isSelected
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  ? 'bg-[#0F0251] text-white'
+                  : 'bg-white'
               }`}
             >
-              <span className="font-medium text-xs text-center leading-tight">
+              <span className="text-xs text-center leading-tight">
                 {choice.text}
               </span>
             </button>
@@ -216,19 +216,19 @@ export default function UserQuestionnaire() {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-2">
         <button
           onClick={handleReset}
-          className="flex-1 py-3 px-6 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+          className="flex-1 py-3 px-6 border-1 border-[#989898] text-[#989898] rounded-lg transition-colors duration-200"
         >
           Reset
         </button>
         
-        <div className="flex gap-4 flex-1">
+        <div className="flex gap-2 flex-1">
           {currentQuestionIndex > 0 && (
             <button
               onClick={handlePreviousQuestion}
-              className="flex-1 py-3 px-6 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium"
+              className="flex-1 py-3 px-6 border-1 bg-gray-600 text-white rounded-lg transition-colors duration-200"
             >
               Previous
             </button>
@@ -237,10 +237,10 @@ export default function UserQuestionnaire() {
           <button
             onClick={handleNextQuestion}
             disabled={submitting}
-            className={`flex-1 py-3 px-6 rounded-lg font-medium transition-colors duration-200 ${
+            className={`flex-1 py-3 px-6 rounded-lg border-1 transition-colors duration-200 ${
               submitting
                 ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-gray-600 hover:bg-gray-700 text-white'
+                : 'bg-[#7E7E7E] text-white'
             }`}
           >
             {submitting
