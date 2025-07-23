@@ -1,7 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  deleteDoc,
+  query,
+  orderBy,
+  setDoc
+} from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { Edit } from 'lucide-react';
 
@@ -20,16 +29,56 @@ export default function AdminPanel() {
 
   const fetchQuestions = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'questions'));
+      const questionsRef = collection(db, 'questions');
+      const q = query(questionsRef, orderBy('sortOrder'));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        await seedDefaultQuestions();
+        return fetchQuestions(); // fetch again after seeding
+      }
+
       const questionList = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+
       setQuestions(questionList);
     } catch (error) {
       console.error('Error fetching questions:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const seedDefaultQuestions = async () => {
+    const defaultQuestions = [
+      {
+        id: 'question1',
+        question: 'Question 1',
+        sortOrder: 1,
+        choices: Array.from({ length: 9 }, (_, i) => ({
+          text: `Option ${i + 1}`,
+          votes: 0,
+        })),
+      },
+      {
+        id: 'question2',
+        question: 'Question 2',
+        sortOrder: 2,
+        choices: Array.from({ length: 5 }, (_, i) => ({
+          text: `Choice ${i + 1}`,
+          votes: 0,
+        })),
+      },
+    ];
+
+    for (const q of defaultQuestions) {
+      await setDoc(doc(db, 'questions', q.id), {
+        question: q.question,
+        choices: q.choices,
+        sortOrder: q.sortOrder,
+      });
     }
   };
 
@@ -56,12 +105,10 @@ export default function AdminPanel() {
       const questionsSnapshot = await getDocs(collection(db, 'questions'));
       const resetPromises = questionsSnapshot.docs.map((docSnap) => {
         const questionData = docSnap.data();
-
         const resetChoices = questionData.choices.map((choice) => ({
           ...choice,
           votes: 0,
         }));
-
         return updateDoc(doc(db, 'questions', docSnap.id), {
           choices: resetChoices
         });
@@ -173,27 +220,27 @@ export default function AdminPanel() {
 function QuestionForm({ question, onClose }) {
   const [questionText, setQuestionText] = useState(question?.question || '');
   const [choices, setChoices] = useState(() => {
-  const baseChoices = question?.choices || [];
-  const lower = (question?.question || '').toLowerCase();
+    const baseChoices = question?.choices || [];
+    const lower = (question?.question || '').toLowerCase();
 
-  if (lower.includes('question 1')) {
-    const filled = [...baseChoices];
-    while (filled.length < 9) {
-      filled.push({ text: '', votes: 0 });
+    if (lower.includes('question 1')) {
+      const filled = [...baseChoices];
+      while (filled.length < 9) {
+        filled.push({ text: '', votes: 0 });
+      }
+      return filled.slice(0, 9);
     }
-    return filled.slice(0, 9);
-  }
 
-  if (lower.includes('question 2')) {
-    const filled = [...baseChoices];
-    while (filled.length < 5) {
-      filled.push({ text: '', votes: 0 });
+    if (lower.includes('question 2')) {
+      const filled = [...baseChoices];
+      while (filled.length < 5) {
+        filled.push({ text: '', votes: 0 });
+      }
+      return filled.slice(0, 5);
     }
-    return filled.slice(0, 5);
-  }
 
-  return baseChoices;
-});
+    return baseChoices;
+  });
 
   const [saving, setSaving] = useState(false);
 
