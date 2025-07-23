@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
-import { Trash2, Edit, Plus } from 'lucide-react';
+import { Edit } from 'lucide-react';
 
 export default function AdminPanel() {
   const [questions, setQuestions] = useState([]);
@@ -11,49 +11,12 @@ export default function AdminPanel() {
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
+  const [responseCount, setResponseCount] = useState(0);
 
   useEffect(() => {
     fetchQuestions();
+    fetchResponseCount();
   }, []);
-
-  const resetAllResponses = async () => {
-    if (!window.confirm('Are you sure you want to delete all responses and reset stats?')) return;
-
-    setResetting(true); // Start loading
-    try {
-      // 1. Delete all documents in "responses"
-      const responsesSnapshot = await getDocs(collection(db, 'responses'));
-      const deletePromises = responsesSnapshot.docs.map((docSnap) =>
-        deleteDoc(doc(db, 'responses', docSnap.id))
-      );
-      await Promise.all(deletePromises);
-
-      // 2. Reset vote counts and responseCount in "questions"
-      const questionsSnapshot = await getDocs(collection(db, 'questions'));
-      const resetPromises = questionsSnapshot.docs.map((docSnap) => {
-        const questionData = docSnap.data();
-
-        const resetChoices = questionData.choices.map((choice) => ({
-          ...choice,
-          votes: 0,
-        }));
-
-        return updateDoc(doc(db, 'questions', docSnap.id), {
-          choices: resetChoices,
-          responseCount: 0,
-        });
-      });
-
-      await Promise.all(resetPromises);
-
-      fetchQuestions(); // refresh table
-    } catch (error) {
-      console.error('Error resetting data:', error);
-      alert('Failed to reset responses');
-    } finally {
-      setResetting(false); // End loading
-    }
-  };
 
   const fetchQuestions = async () => {
     try {
@@ -70,15 +33,49 @@ export default function AdminPanel() {
     }
   };
 
-  const deleteQuestion = async (id) => {
-    if (window.confirm('Are you sure you want to delete this question?')) {
-      try {
-        await deleteDoc(doc(db, 'questions', id));
-        setQuestions(questions.filter(q => q.id !== id));
-      } catch (error) {
-        console.error('Error deleting question:', error);
-        alert('Error deleting question');
-      }
+  const fetchResponseCount = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, 'responses'));
+      setResponseCount(snapshot.size);
+    } catch (error) {
+      console.error('Error fetching response count:', error);
+    }
+  };
+
+  const resetAllResponses = async () => {
+    if (!window.confirm('Are you sure you want to delete all responses and reset stats?')) return;
+
+    setResetting(true);
+    try {
+      const responsesSnapshot = await getDocs(collection(db, 'responses'));
+      const deletePromises = responsesSnapshot.docs.map((docSnap) =>
+        deleteDoc(doc(db, 'responses', docSnap.id))
+      );
+      await Promise.all(deletePromises);
+
+      const questionsSnapshot = await getDocs(collection(db, 'questions'));
+      const resetPromises = questionsSnapshot.docs.map((docSnap) => {
+        const questionData = docSnap.data();
+
+        const resetChoices = questionData.choices.map((choice) => ({
+          ...choice,
+          votes: 0,
+        }));
+
+        return updateDoc(doc(db, 'questions', docSnap.id), {
+          choices: resetChoices
+        });
+      });
+
+      await Promise.all(resetPromises);
+
+      fetchQuestions();
+      fetchResponseCount();
+    } catch (error) {
+      console.error('Error resetting data:', error);
+      alert('Failed to reset responses');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -91,6 +88,7 @@ export default function AdminPanel() {
     setShowForm(false);
     setEditingQuestion(null);
     fetchQuestions();
+    fetchResponseCount();
   };
 
   if (loading) {
@@ -106,20 +104,20 @@ export default function AdminPanel() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-900">All Questions</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              All Questions{' '}
+              <span className="text-sm text-gray-500 ml-2">
+                (Total responses: {responseCount})
+              </span>
+            </h2>
             <button
               onClick={resetAllResponses}
               disabled={resetting}
-              className={`px-4 py-2 rounded-lg ${resetting ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'} text-white`}
+              className={`px-4 py-2 rounded-lg ${
+                resetting ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'
+              } text-white`}
             >
               {resetting ? 'Resetting...' : 'Reset Responses'}
-            </button>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Question
             </button>
           </div>
 
@@ -135,8 +133,7 @@ export default function AdminPanel() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. of Options</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. of Responses</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Edit</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -145,19 +142,12 @@ export default function AdminPanel() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
                       <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{question.question}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{question.choices?.length || 0}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{question.responseCount || 0}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
                           onClick={() => handleEdit(question)}
-                          className="text-blue-600 hover:text-blue-900 mr-4"
+                          className="text-blue-600 hover:text-blue-900"
                         >
                           <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => deleteQuestion(question.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="h-4 w-4" />
                         </button>
                       </td>
                     </tr>
@@ -179,20 +169,33 @@ export default function AdminPanel() {
   );
 }
 
+// --- QuestionForm component ---
 function QuestionForm({ question, onClose }) {
   const [questionText, setQuestionText] = useState(question?.question || '');
-  const [choices, setChoices] = useState(question?.choices || [{ text: '', votes: 0 }]);
-  const [saving, setSaving] = useState(false);
+  const [choices, setChoices] = useState(() => {
+  const baseChoices = question?.choices || [];
+  const lower = (question?.question || '').toLowerCase();
 
-  const addChoice = () => {
-    setChoices([...choices, { text: '', votes: 0 }]);
-  };
-
-  const removeChoice = (index) => {
-    if (choices.length > 1) {
-      setChoices(choices.filter((_, i) => i !== index));
+  if (lower.includes('question 1')) {
+    const filled = [...baseChoices];
+    while (filled.length < 9) {
+      filled.push({ text: '', votes: 0 });
     }
-  };
+    return filled.slice(0, 9);
+  }
+
+  if (lower.includes('question 2')) {
+    const filled = [...baseChoices];
+    while (filled.length < 5) {
+      filled.push({ text: '', votes: 0 });
+    }
+    return filled.slice(0, 5);
+  }
+
+  return baseChoices;
+});
+
+  const [saving, setSaving] = useState(false);
 
   const updateChoice = (index, text) => {
     const newChoices = [...choices];
@@ -202,7 +205,7 @@ function QuestionForm({ question, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!questionText.trim() || choices.some(c => !c.text.trim())) {
       alert('Please fill in all fields');
       return;
@@ -213,16 +216,11 @@ function QuestionForm({ question, onClose }) {
     try {
       const questionData = {
         question: questionText,
-        choices: choices,
-        responseCount: question?.responseCount || 0
+        choices
       };
 
-      if (question) {
-        await updateDoc(doc(db, 'questions', question.id), questionData);
-      } else {
-        await addDoc(collection(db, 'questions'), questionData);
-      }
-      
+      await updateDoc(doc(db, 'questions', question.id), questionData);
+
       onClose();
     } catch (error) {
       console.error('Error saving question:', error);
@@ -236,9 +234,7 @@ function QuestionForm({ question, onClose }) {
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">
-            {question ? 'Edit Question' : 'Add New Question'}
-          </h3>
+          <h3 className="text-lg font-medium text-gray-900">Edit Question</h3>
         </div>
         
         <form onSubmit={handleSubmit} className="p-6">
@@ -251,7 +247,6 @@ function QuestionForm({ question, onClose }) {
               value={questionText}
               onChange={(e) => setQuestionText(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter your question"
               required
             />
           </div>
@@ -270,25 +265,8 @@ function QuestionForm({ question, onClose }) {
                   placeholder={`Choice ${index + 1}`}
                   required
                 />
-                {choices.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeChoice(index)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                )}
               </div>
             ))}
-            <button
-              type="button"
-              onClick={addChoice}
-              className="text-blue-600 hover:text-blue-900 text-sm flex items-center gap-1"
-            >
-              <Plus className="h-4 w-4" />
-              Add Choice
-            </button>
           </div>
 
           <div className="flex justify-end gap-3">
@@ -304,7 +282,7 @@ function QuestionForm({ question, onClose }) {
               disabled={saving}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
             >
-              {saving ? 'Saving...' : question ? 'Update' : 'Create'}
+              {saving ? 'Saving...' : 'Update'}
             </button>
           </div>
         </form>
