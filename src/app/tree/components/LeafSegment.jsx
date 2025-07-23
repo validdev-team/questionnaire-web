@@ -72,11 +72,8 @@ const LeafSegment = ({ leaf, onVoteReceived }) => {
 
                     {/* Text Overlay on Leaf */}
                     <div className="absolute inset-0 top-2 flex flex-col items-center justify-center text-white text-center px-1">
-                        <div className="text-[4px] font-medium leading-tight mb-[1px]">
-                            {leaf.question.length > 60 ?
-                                leaf.question.substring(0, 60) + '...' :
-                                leaf.question
-                            }
+                        <div className="text-[4px] font-medium leading-tight mb-[1px] max-w-[70%] break-words">
+                            {leaf.question}
                         </div>
                         <div className="text-[6px] font-bold">
                             {count}
