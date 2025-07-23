@@ -73,7 +73,7 @@ export default function ResultsPage() {
                     </h3>
                     
                     <div className="mb-4 text-sm text-gray-600">
-                      Total Responses: {question.responseCount || 0} | Total Votes: {totalVotes}
+                      Total Votes: {totalVotes}
                     </div>
                     
                     <div className="space-y-3">

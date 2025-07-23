@@ -52,8 +52,7 @@ export async function POST(request) {
 
                 // Increment responseCount once per question
                 await updateDoc(questionRef, {
-                    choices: updatedChoices,
-                    responseCount: increment(1)
+                    choices: updatedChoices
                 });
             }
         }
