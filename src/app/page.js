@@ -180,6 +180,7 @@ export default function UserQuestionnaire() {
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswers = answers[currentQuestion?.id] || [];
+  const hasAnswers = currentAnswers.length > 0; // Check if any options are selected
 
   return (
     <div className="max-w-4xl mx-auto px-4 my-auto">
@@ -219,7 +220,11 @@ export default function UserQuestionnaire() {
       <div className="flex flex-col sm:flex-row gap-2">
         <button
           onClick={handleReset}
-          className="flex-1 py-3 px-6 border-1 border-[#989898] text-[#989898] rounded-lg transition-colors duration-200"
+          className={`flex-1 py-3 px-6 border-1 rounded-lg transition-colors duration-200 ${
+            hasAnswers
+              ? 'border-[#0F0251] bg-white text-[#0F0251]'
+              : 'border-[#989898] text-[#989898]'
+          }`}
         >
           Reset
         </button>
@@ -240,7 +245,9 @@ export default function UserQuestionnaire() {
             className={`flex-1 py-3 px-6 rounded-lg border-1 transition-colors duration-200 ${
               submitting
                 ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-[#7E7E7E] text-white'
+                : hasAnswers
+                ? 'bg-[#0F0251] text-white border-[#0F0251]'
+                : 'bg-[#7E7E7E] text-white border-[#7E7E7E]'
             }`}
           >
             {submitting
