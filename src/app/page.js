@@ -183,89 +183,91 @@ export default function UserQuestionnaire() {
   const hasAnswers = currentAnswers.length > 0; // Check if any options are selected
 
   return (
-    <div className="max-w-4xl mx-auto px-4 my-auto">
-      {/* Previous button */}
-      {currentQuestionIndex > 0 && (
-        <button
-          onClick={handlePreviousQuestion}
-          className="mb-4 w-8 h-8 bg-[#0F0251] text-white rounded-full flex items-center justify-center transition-colors duration-200 flex-shrink-0"
-        >
-          <img 
-            src="/left-button.svg" 
-            alt="Previous" 
-            className="w-8 h-8"
-          />
-        </button>
-      )}
-
-      {/* Question Header */}
-      <div className="mb-8">
-        <p className="text-sm mb-2">
-          Question {currentQuestionIndex + 1}/{questions.length}
-        </p>
-        <h2 className="text-2xl font-bold leading-tight">
-          {currentQuestion.question}
-        </h2>
-      </div>
-
-      {/* Answer Options Grid */}
-      <div className="grid grid-cols-3 gap-2 mb-8 auto-rows-fr">
-        {currentQuestion.choices?.map((choice, index) => {
-          const isSelected = currentAnswers.includes(index);
-          return (
-            <button
-              key={index}
-              onClick={() => handleAnswerChange(currentQuestion.id, index)}
-              className={`p-3 rounded-md border-1 transition-all duration-200 aspect-square flex items-center justify-center border-[#0F0251] ${
-                isSelected
-                  ? 'bg-[#0F0251] text-white'
-                  : 'bg-white'
-              }`}
-            >
-              <span className="text-xs text-center leading-tight">
-                {choice.text}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <button
-          onClick={handleReset}
-          className={`flex-1 py-3 px-6 border-1 rounded-lg transition-colors duration-200 ${
-            hasAnswers
-              ? 'border-[#0F0251] bg-white text-[#0F0251]'
-              : 'border-[#989898] text-[#989898]'
-          }`}
-        >
-          Reset
-        </button>
-        
-        <div className="flex gap-2 flex-1">
+    <main className="min-h-screen flex items-center justify-center bg-white text-[#0F0251]">
+      <div className="max-w-md mx-auto px-4 my-auto">
+        {/* Previous button */}
+        {currentQuestionIndex > 0 && (
           <button
-            onClick={handleNextQuestion}
-            disabled={submitting}
-            className={`flex-1 py-3 px-6 rounded-lg border-1 transition-colors duration-200 ${
-              submitting
-                ? 'bg-gray-400 cursor-not-allowed text-white'
-                : hasAnswers
-                ? currentQuestionIndex === questions.length - 1
-                  ? 'bg-[#2A51FE] text-white border-[#2A51FE]'
-                  : 'bg-[#0F0251] text-white border-[#0F0251]'
-                : 'bg-[#7E7E7E] text-white border-[#7E7E7E]'
+            onClick={handlePreviousQuestion}
+            className="mb-4 w-8 h-8 bg-[#0F0251] text-white rounded-full flex items-center justify-center transition-colors duration-200 flex-shrink-0"
+          >
+            <img 
+              src="/left-button.svg" 
+              alt="Previous" 
+              className="w-8 h-8"
+            />
+          </button>
+        )}
+
+        {/* Question Header */}
+        <div className="mb-8">
+          <p className="text-sm mb-2">
+            Question {currentQuestionIndex + 1}/{questions.length}
+          </p>
+          <h2 className="text-2xl font-bold leading-tight">
+            {currentQuestion.question}
+          </h2>
+        </div>
+
+        {/* Answer Options Grid */}
+        <div className="grid grid-cols-3 gap-2 mb-8 auto-rows-fr">
+          {currentQuestion.choices?.map((choice, index) => {
+            const isSelected = currentAnswers.includes(index);
+            return (
+              <button
+                key={index}
+                onClick={() => handleAnswerChange(currentQuestion.id, index)}
+                className={`p-3 rounded-md border-1 transition-all duration-200 aspect-square flex items-center justify-center border-[#0F0251] ${
+                  isSelected
+                    ? 'bg-[#0F0251] text-white'
+                    : 'bg-white'
+                }`}
+              >
+                <span className="text-xs text-center leading-tight">
+                  {choice.text}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={handleReset}
+            className={`flex-1 py-3 px-6 border-1 rounded-lg transition-colors duration-200 ${
+              hasAnswers
+                ? 'border-[#0F0251] bg-white text-[#0F0251]'
+                : 'border-[#989898] text-[#989898]'
             }`}
           >
-            {submitting
-              ? 'Submitting...'
-              : currentQuestionIndex === questions.length - 1
-              ? 'Submit'
-              : 'Next Question'
-            }
+            Reset
           </button>
+          
+          <div className="flex gap-2 flex-1">
+            <button
+              onClick={handleNextQuestion}
+              disabled={submitting}
+              className={`flex-1 py-3 px-6 rounded-lg border-1 transition-colors duration-200 ${
+                submitting
+                  ? 'bg-gray-400 cursor-not-allowed text-white'
+                  : hasAnswers
+                  ? currentQuestionIndex === questions.length - 1
+                    ? 'bg-[#2A51FE] text-white border-[#2A51FE]'
+                    : 'bg-[#0F0251] text-white border-[#0F0251]'
+                  : 'bg-[#7E7E7E] text-white border-[#7E7E7E]'
+              }`}
+            >
+              {submitting
+                ? 'Submitting...'
+                : currentQuestionIndex === questions.length - 1
+                ? 'Submit'
+                : 'Next Question'
+              }
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
