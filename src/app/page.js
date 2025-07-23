@@ -17,46 +17,13 @@ export default function UserQuestionnaire() {
 
   const fetchQuestions = async () => {
     try {
-      // const response = await fetch('/api/questions');
-      // if (!response.ok) {
-      //   throw new Error('Failed to fetch questions');
-      // }
-      // const data = await response.json();
-      // console.log("questions fetched: ", data)
-      // setQuestions(data);
-
-      // Mock data for demo - replace with your API call
-      const mockData = [
-        {
-          id: "69zjx5aQdJSpZmeusE6u",
-          question: "Which area(s) will help your company strengthen its workforce development?",
-          choices: [
-            { text: "Skills-based Hiring Techniques and Practices" },
-            { text: "Skills Gaps and Learning Need Analysis (TNA)" },
-            { text: "Career Progression Pathway and Competency Framework" },
-            { text: "Job Redesign & Reskilling" },
-            { text: "On-the-Job Training (OJT)" },
-            { text: "Digital & AI-enabled Learning" },
-            { text: "Learning from Global and Local Best Practices" },
-            { text: "Mentoring & Coaching" },
-            { text: "Lean & Process Improvement" }
-          ]
-        },
-        {
-          id: "nslxetFEX6wQWVVqKSjB",
-          question: "What challenges does your organization face in workforce development?",
-          choices: [
-            { text: "Limited Budget" },
-            { text: "Lack of Leadership Support" },
-            { text: "Employee Resistance" },
-            { text: "Time Constraints" },
-            { text: "Skills Assessment" },
-            { text: "Technology Adoption" }
-          ]
-        }
-      ];
-      
-      setQuestions(mockData);
+      const response = await fetch('/api/questions');
+      if (!response.ok) {
+        throw new Error('Failed to fetch questions');
+      }
+      const data = await response.json();
+      console.log("questions fetched: ", data)
+      setQuestions(data);
     } catch (error) {
       console.error('Error fetching questions:', error);
       setError('Failed to load questions. Please try again.');
