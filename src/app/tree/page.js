@@ -140,35 +140,24 @@ const LEAF_CONFIG = [
     ];
 
     // ============================================================================
-    // INDIVIDUAL LEAF COMPONENT - Handles single leaf rendering and animation
+    // INDIVIDUAL LEAF COMPONENT - Handles single leaf rendering
     // ============================================================================
     const LeafSegment = ({ leaf, onVoteReceived }) => {
     const [count, setCount] = useState(leaf.initialCount);
-    const [isAnimating, setIsAnimating] = useState(false);
-    const animationRef = useRef(null);
 
     // Calculate leaf size based on vote count (grows with more votes)
     const leafScale = 2.8 + (count / 200); // Adjust divisor to control growth rate
     
     // Handle new vote received
-    const handleVote = () => {
-        setCount(prev => prev + 1);
-        triggerAnimation();
-        onVoteReceived?.(leaf.id, count + 1);
-    };
-
-    // Trigger WebM animation when vote is received
-    const triggerAnimation = () => {
-        if (animationRef.current && !isAnimating) {
-        setIsAnimating(true);
-        animationRef.current.currentTime = 0;
-        animationRef.current.play();
-        }
-    };
-
-    // Reset animation state when WebM finishes playing
-    const handleAnimationEnd = () => {
-        setIsAnimating(false);
+    const handleVote = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log(`Leaf ${leaf.id} clicked! Playing animation: ${leaf.animationFile}`);
+        
+        const newCount = count + 1;
+        setCount(newCount);
+        onVoteReceived?.(leaf.id, newCount, leaf.animationFile);
     };
 
     return (
@@ -178,7 +167,8 @@ const LEAF_CONFIG = [
             left: `${leaf.x}px`,
             top: `${leaf.y}px`,
             transform: `scale(${leafScale})`,
-            transformOrigin: 'center center'
+            transformOrigin: 'center center',
+            zIndex: 10
         }}
         onClick={handleVote} // Remove this in production - just for testing
         >
@@ -207,24 +197,6 @@ const LEAF_CONFIG = [
             </div>
             </div>
         </div>
-
-        {/* WebM Animation Overlay - Only visible when animating */}
-        {isAnimating && (
-            <video
-            ref={animationRef}
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-            style={{ zIndex: 10 }}
-            muted
-            playsInline
-            onEnded={handleAnimationEnd}
-            onError={(e) => {
-                console.error(`Failed to load animation: ${leaf.animationFile}`);
-                setIsAnimating(false);
-            }}
-            >
-            <source src={`/animation/${leaf.animationFile}`} type="video/webm" />
-            </video>
-        )}
         </div>
     );
     };
@@ -234,33 +206,25 @@ const LEAF_CONFIG = [
     // ============================================================================
     const RootCircle = ({ root, onVoteReceived }) => {
     const [count, setCount] = useState(root.initialCount);
-    const [isAnimating, setIsAnimating] = useState(false);
-    const animationRef = useRef(null);
 
-    const handleVote = () => {
-        setCount(prev => prev + 1);
-        triggerAnimation();
-        onVoteReceived?.(root.id, count + 1);
-    };
-
-    const triggerAnimation = () => {
-        if (animationRef.current && !isAnimating) {
-        setIsAnimating(true);
-        animationRef.current.currentTime = 0;
-        animationRef.current.play();
-        }
-    };
-
-    const handleAnimationEnd = () => {
-        setIsAnimating(false);
+    const handleVote = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log(`Root ${root.id} clicked! Playing animation: ${root.animationFile}`);
+        
+        const newCount = count + 1;
+        setCount(newCount);
+        onVoteReceived?.(root.id, newCount, root.animationFile);
     };
 
     return (
         <div 
-        className="absolute cursor-pointer"
+        className="absolute cursor-pointer hover:scale-105 transition-transform duration-200"
         style={{
             left: `${root.x}px`,
-            top: `${root.y}px`
+            top: `${root.y}px`,
+            zIndex: 10
         }}
         onClick={handleVote}
         >
@@ -270,6 +234,9 @@ const LEAF_CONFIG = [
             src={`/svg/${root.svgFile}`}
             alt={`Root ${root.id}`}
             className="w-20 h-20 object-contain place-self-center"
+            onError={(e) => {
+                        console.error(`Failed to load root SVG: ${root.svgFile}`);
+                    }}
             />
             
             {/* Count Display */}
@@ -285,20 +252,6 @@ const LEAF_CONFIG = [
                 }
             </div>
         </div>
-
-        {/* WebM Animation Overlay */}
-        {isAnimating && (
-            <video
-            ref={animationRef}
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-            style={{ zIndex: 10 }}
-            muted
-            playsInline
-            onEnded={handleAnimationEnd}
-            >
-            <source src={`/animation/${root.animationFile}`} type="video/webm" />
-            </video>
-        )}
         </div>
     );
     };
@@ -307,14 +260,67 @@ const LEAF_CONFIG = [
     // MAIN TREE PAGE COMPONENT
     // ============================================================================
     const TreePage = () => {
-    const [totalVotes, setTotalVotes] = useState(0); // Initialize with your starting count
+    const [totalVotes, setTotalVotes] = useState(() => {
+            // Calculate initial total from all leaf and root initial counts
+            const leafTotal = LEAF_CONFIG.reduce((sum, leaf) => sum + leaf.initialCount, 0);
+            const rootTotal = ROOT_CONFIG.reduce((sum, root) => sum + root.initialCount, 0);
+            return leafTotal + rootTotal;
+        });
+
+    const [isAnimating, setIsAnimating] = useState(false);
+    const [currentAnimation, setCurrentAnimation] = useState(null);
+    const [videoLoaded, setVideoLoaded] = useState(false);
+    const animationRef = useRef(null);
+
+    // Preload the video when component mounts
+    useEffect(() => {
+        if (animationRef.current) {
+            animationRef.current.load();
+        }
+    }, [currentAnimation]);
 
     // Handle vote received from any leaf or root
-    const handleVoteReceived = (elementId, newCount) => {
+    const handleVoteReceived = (elementId, newCount, animationFile) => {
         setTotalVotes(prev => prev + 1);
         
+        // Trigger animation on tree trunk
+        triggerTreeAnimation(animationFile);
+        
         // Here you would typically send the vote to your backend
-        console.log(`Vote received for ${elementId}, new count: ${newCount}`);
+        console.log(`Vote received for ${elementId}, new count: ${newCount}, total votes: ${totalVotes + 1}`);
+    };
+
+    // Trigger animation on tree trunk
+    const triggerTreeAnimation = async (animationFile) => {
+        if (isAnimating || !animationRef.current) return;
+
+        try {
+            setIsAnimating(true);
+            setCurrentAnimation(animationFile);
+            
+            const video = animationRef.current;
+            video.currentTime = 0;
+            
+            console.log(`Playing tree animation: /animation/${animationFile}`);
+            await video.play();
+            
+        } catch (error) {
+            console.error(`Failed to play tree animation:`, error);
+            setIsAnimating(false);
+        }
+    };
+
+    const handleAnimationEnd = () => {
+        console.log(`Tree animation ended`);
+        setIsAnimating(false);
+        setCurrentAnimation(null);
+    };
+
+    const handleVideoError = (e) => {
+        console.error(`Tree video error:`, e.target.error);
+        setIsAnimating(false);
+        setVideoLoaded(false);
+        setCurrentAnimation(null);
     };
 
     return (
@@ -364,9 +370,38 @@ const LEAF_CONFIG = [
             }}
             />
             <img
-            src="/svg/Bg Leaves.svg"
-            className="absolute top-[60px] w-[800px] object-contain z-0"
-            />
+                    src="/svg/Bg Leaves.svg"
+                    alt="Background leaves"
+                    className="absolute top-[60px] w-[800px] object-contain z-0"
+                    onError={(e) => {
+                        console.error('Background leaves SVG failed to load');
+                        e.target.style.display = 'none';
+                    }}
+                />
+
+            {/* WebM Animation Overlay - Plays on top of tree trunk */}
+            {currentAnimation && (
+                <video
+                    ref={animationRef}
+                    className={`absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-200 ${
+                        isAnimating ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    style={{ 
+                        zIndex: isAnimating ? 1001 : -1,
+                        transform: 'scale(1.2)',
+                        transformOrigin: 'center center'
+                    }}
+                    muted
+                    playsInline
+                    preload="auto"
+                    onCanPlay={() => setVideoLoaded(true)}
+                    onEnded={handleAnimationEnd}
+                    onError={handleVideoError}
+                >
+                    <source src={`/animation/${currentAnimation}`} type="video/webm" />
+                    <source src={`/animation/${currentAnimation.replace('.webm', '.mp4')}`} type="video/mp4" />
+                </video>
+            )}
         </div>
         
         {/* ============================== */}
