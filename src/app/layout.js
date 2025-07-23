@@ -1,4 +1,4 @@
-// app/layout.js
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import './globals.css'
 import { Inter } from 'next/font/google'
 
@@ -18,6 +18,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className={inter.variable}>
       <body>
         {children}
+        <SpeedInsights />
       </body>
     </html>
   )

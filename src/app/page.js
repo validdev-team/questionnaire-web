@@ -17,46 +17,13 @@ export default function UserQuestionnaire() {
 
   const fetchQuestions = async () => {
     try {
-      // const response = await fetch('/api/questions');
-      // if (!response.ok) {
-      //   throw new Error('Failed to fetch questions');
-      // }
-      // const data = await response.json();
-      // console.log("questions fetched: ", data)
-      // setQuestions(data);
-
-      // Mock data for demo - replace with your API call
-      const mockData = [
-        {
-          id: "69zjx5aQdJSpZmeusE6u",
-          question: "Which area(s) will help your company strengthen its workforce development?",
-          choices: [
-            { text: "Skills-based Hiring Techniques and Practices" },
-            { text: "Skills Gaps and Learning Need Analysis (TNA)" },
-            { text: "Career Progression Pathway and Competency Framework" },
-            { text: "Job Redesign & Reskilling" },
-            { text: "On-the-Job Training (OJT)" },
-            { text: "Digital & AI-enabled Learning" },
-            { text: "Learning from Global and Local Best Practices" },
-            { text: "Mentoring & Coaching" },
-            { text: "Lean & Process Improvement" }
-          ]
-        },
-        {
-          id: "nslxetFEX6wQWVVqKSjB",
-          question: "What challenges does your organization face in workforce development?",
-          choices: [
-            { text: "Limited Budget" },
-            { text: "Lack of Leadership Support" },
-            { text: "Employee Resistance" },
-            { text: "Time Constraints" },
-            { text: "Skills Assessment" },
-            { text: "Technology Adoption" }
-          ]
-        }
-      ];
-      
-      setQuestions(mockData);
+      const response = await fetch('/api/questions');
+      if (!response.ok) {
+        throw new Error('Failed to fetch questions');
+      }
+      const data = await response.json();
+      console.log("questions fetched: ", data)
+      setQuestions(data);
     } catch (error) {
       console.error('Error fetching questions:', error);
       setError('Failed to load questions. Please try again.');
@@ -184,7 +151,7 @@ export default function UserQuestionnaire() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-white text-[#0F0251]">
-      <div className="max-w-md mx-auto px-4 my-auto">
+      <div className="mx-auto px-4 my-auto min-w-full md:min-w-xl max-w-md">
         {/* Previous button */}
         {currentQuestionIndex > 0 && (
           <button
@@ -247,7 +214,7 @@ export default function UserQuestionnaire() {
           <div className="flex gap-2 flex-1">
             <button
               onClick={handleNextQuestion}
-              disabled={submitting}
+              disabled={submitting || !hasAnswers}
               className={`flex-1 py-3 px-6 rounded-lg border-1 transition-colors duration-200 ${
                 submitting
                   ? 'bg-gray-400 cursor-not-allowed text-white'
@@ -255,7 +222,7 @@ export default function UserQuestionnaire() {
                   ? currentQuestionIndex === questions.length - 1
                     ? 'bg-[#2A51FE] text-white border-[#2A51FE]'
                     : 'bg-[#0F0251] text-white border-[#0F0251]'
-                  : 'bg-[#7E7E7E] text-white border-[#7E7E7E]'
+                  : 'bg-[#7E7E7E] text-white border-[#7E7E7E] cursor-not-allowed'
               }`}
             >
               {submitting
