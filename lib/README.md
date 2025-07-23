@@ -14,7 +14,7 @@ Make sure you have the following installed:
 If Firebase CLI isn’t installed yet, run:
 
 ```bash
-npm install -g firebase-tools
+npm install
 ```
 
 Then log in to Firebase
@@ -23,23 +23,54 @@ Then log in to Firebase
 firebase login
 ```
 
+## 🔍 Find the Project ID
+The Project ID will be used when you start the firebase emulator
+
+```bash
+firebase projects:list
+```
+
+You'll see something like:
+
+```mathematica
+┌──────────────────────┬─────────────────────────┬────────────────┐
+│ Project Display Name │ Project ID              │ Project Number │
+├──────────────────────┼─────────────────────────┼────────────────┤
+│ Questionnaire Web    │ questionnaire-web-897dc │ 167360025310   │
+└──────────────────────┴─────────────────────────┴────────────────┘
+```
+
+`questionnaire-web-897dc` is your project id.
+
 ## 💻 One-Time Setup
 From your project root (where `firebase.json` is), run:
 
 ```bash
-firebase use --add
+firebase init
 ```
 
-Choose the Firebase project:
-👉 `questionnaire-web-897dc`
+### **During the prompts:**
+- ✅ Choose **Firestore** only (press space to select)
 
-This creates a `.firebaserc` file to track your project settings.
+- ✅ Select "Use an existing project" → choose your project id
+
+- ✅ Accept default filenames:
+
+    - Firestore Rules: `firestore.rules`
+
+    - Indexes: `firestore.indexes.json`
+
+- 🚫 Do not overwrite any existing files unless you're sure
+
+- 🚫 You can skip hosting and other options
+
+This will generate a `firebase.json` and `.firebaserc` file if not already present.
 
 ## ⚙️ Configure Environment
 Set this in your `.env.local` file:
 
 ```env
-NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true  # For Firebase Emulator
+NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true
 ```
 
 Switch to production by setting it to `false`:
@@ -52,7 +83,7 @@ NEXT_PUBLIC_USE_FIREBASE_EMULATOR=false
 Run this from the project root:
 
 ```bash
-firebase emulators:start --project questionnaire-web-897dc
+firebase emulators:start --project <your-project-id>
 ```
 
 You’ll see something like:
