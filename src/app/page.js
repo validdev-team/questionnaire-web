@@ -194,20 +194,20 @@ export default function UserQuestionnaire() {
       </div>
 
       {/* Answer Options Grid */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-4 mb-8 auto-rows-fr">
         {currentQuestion.choices?.map((choice, index) => {
           const isSelected = currentAnswers.includes(index);
           return (
             <button
               key={index}
               onClick={() => handleAnswerChange(currentQuestion.id, index)}
-              className={`py-4 px-2 rounded-lg border-2 text-left transition-all duration-200 aspect-square flex items-center justify-center text-center ${
+              className={`p-3 rounded-lg border-2 transition-all duration-200 aspect-square flex items-center justify-center ${
                 isSelected
                   ? 'border-blue-500 bg-blue-50 text-blue-700'
                   : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >
-              <span className="font-medium text-sm leading-tight">
+              <span className="font-medium text-xs text-center leading-tight">
                 {choice.text}
               </span>
             </button>
