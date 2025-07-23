@@ -59,7 +59,7 @@ export default function AdminPanel() {
         sortOrder: 1,
         choices: Array.from({ length: 9 }, (_, i) => ({
           text: `Option ${i + 1}`,
-          votes: 0,
+          // Removed votes attribute from here
         })),
       },
       {
@@ -68,7 +68,7 @@ export default function AdminPanel() {
         sortOrder: 2,
         choices: Array.from({ length: 5 }, (_, i) => ({
           text: `Choice ${i + 1}`,
-          votes: 0,
+          // Removed votes attribute from here
         })),
       },
     ];
@@ -96,26 +96,27 @@ export default function AdminPanel() {
 
     setResetting(true);
     try {
+      // Delete all response documents from the `responses` collection
       const responsesSnapshot = await getDocs(collection(db, 'responses'));
       const deletePromises = responsesSnapshot.docs.map((docSnap) =>
         deleteDoc(doc(db, 'responses', docSnap.id))
       );
       await Promise.all(deletePromises);
 
-      const questionsSnapshot = await getDocs(collection(db, 'questions'));
-      const resetPromises = questionsSnapshot.docs.map((docSnap) => {
-        const questionData = docSnap.data();
-        const resetChoices = questionData.choices.map((choice) => ({
-          ...choice,
-          votes: 0,
-        }));
-        return updateDoc(doc(db, 'questions', docSnap.id), {
-          choices: resetChoices
+      // Reset votes in aggregated results (not in questions collection anymore)
+      const aggregatedResultsSnapshot = await getDocs(collection(db, 'aggregated_results'));
+      const resetAggregatedPromises = aggregatedResultsSnapshot.docs.map((docSnap) => {
+        return updateDoc(doc(db, 'aggregated_results', docSnap.id), {
+          totalVotes: 0, // Reset any aggregated values
+          choices: docSnap.data().choices.map((choice) => ({
+            ...choice,
+            votes: 0,
+          })),
         });
       });
+      await Promise.all(resetAggregatedPromises);
 
-      await Promise.all(resetPromises);
-
+      // Refetch questions and response count after reset
       fetchQuestions();
       fetchResponseCount();
     } catch (error) {
@@ -226,7 +227,7 @@ function QuestionForm({ question, onClose }) {
     if (lower.includes('question 1')) {
       const filled = [...baseChoices];
       while (filled.length < 9) {
-        filled.push({ text: '', votes: 0 });
+        filled.push({ text: '' }); // No votes here
       }
       return filled.slice(0, 9);
     }
@@ -234,7 +235,7 @@ function QuestionForm({ question, onClose }) {
     if (lower.includes('question 2')) {
       const filled = [...baseChoices];
       while (filled.length < 5) {
-        filled.push({ text: '', votes: 0 });
+        filled.push({ text: '' }); // No votes here
       }
       return filled.slice(0, 5);
     }

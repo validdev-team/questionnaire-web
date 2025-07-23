@@ -1,11 +1,12 @@
-// app/api/responses/route.js
 import { NextResponse } from 'next/server';
 import {
     collection,
     addDoc,
     doc,
-    updateDoc,
-    getDoc
+    getDoc,
+    getDocs,
+    setDoc,
+    writeBatch
 } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
 
@@ -22,11 +23,14 @@ export async function POST(request) {
         }
 
         // Save response
-        await addDoc(collection(db, 'responses'), {
+        const responseRef = await addDoc(collection(db, 'responses'), {
             answers
         });
 
-        // Update vote counts
+        // Start a batch write to ensure atomic updates
+        const batch = writeBatch(db);
+
+        // Aggregating vote counts and updating the 'aggregated_results' collection
         for (const [questionId, selectedChoices] of Object.entries(answers)) {
             if (!Array.isArray(selectedChoices)) continue;
 
@@ -48,11 +52,40 @@ export async function POST(request) {
                     }
                 });
 
-                await updateDoc(questionRef, {
+                // Calculate total votes for aggregation
+                const totalVotes = updatedChoices.reduce((sum, choice) => sum + (choice.votes || 0), 0);
+
+                // Aggregate the result in a separate collection to avoid updating votes in `questions` directly
+                const aggregatedResultRef = doc(db, 'aggregated_results', questionId);
+                const aggregatedResultSnap = await getDoc(aggregatedResultRef);
+
+                let aggregatedData = {
+                    totalVotes,
+                    choices: updatedChoices
+                };
+
+                if (aggregatedResultSnap.exists()) {
+                    // If there's an existing aggregation, update it
+                    const currentData = aggregatedResultSnap.data();
+                    aggregatedData.totalVotes += currentData.totalVotes;
+                    aggregatedData.choices.forEach((choice, idx) => {
+                        choice.votes += currentData.choices[idx].votes;
+                    });
+                }
+
+                // Add the updated aggregated data to the batch
+                batch.set(aggregatedResultRef, aggregatedData);
+
+                // Optionally, you can also update the `questions` collection with just the choices (without votes)
+                // This is not strictly necessary if votes are handled entirely in `aggregated_results`
+                batch.update(questionRef, {
                     choices: updatedChoices
                 });
             }
         }
+
+        // Commit the batch to apply all changes atomically
+        await batch.commit();
 
         return NextResponse.json({
             message: 'Response submitted successfully'

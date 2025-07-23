@@ -11,6 +11,7 @@ export default function UserQuestionnaire() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [error, setError] = useState('');
 
+  // Fetch questions on component mount
   useEffect(() => {
     fetchQuestions();
   }, []);
@@ -22,7 +23,6 @@ export default function UserQuestionnaire() {
         throw new Error('Failed to fetch questions');
       }
       const data = await response.json();
-      console.log("questions fetched: ", data)
       setQuestions(data);
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -146,7 +146,7 @@ export default function UserQuestionnaire() {
 
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswers = answers[currentQuestion?.id] || [];
-  const hasAnswers = currentAnswers.length > 0; // Check if any options are selected
+  const hasAnswers = currentAnswers.length > 0;
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-white text-[#0F0251]">
