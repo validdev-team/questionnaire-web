@@ -214,7 +214,7 @@ export default function UserQuestionnaire() {
           <div className="flex gap-2 flex-1">
             <button
               onClick={handleNextQuestion}
-              disabled={submitting}
+              disabled={submitting || !hasAnswers}
               className={`flex-1 py-3 px-6 rounded-lg border-1 transition-colors duration-200 ${
                 submitting
                   ? 'bg-gray-400 cursor-not-allowed text-white'
@@ -222,7 +222,7 @@ export default function UserQuestionnaire() {
                   ? currentQuestionIndex === questions.length - 1
                     ? 'bg-[#2A51FE] text-white border-[#2A51FE]'
                     : 'bg-[#0F0251] text-white border-[#0F0251]'
-                  : 'bg-[#7E7E7E] text-white border-[#7E7E7E]'
+                  : 'bg-[#7E7E7E] text-white border-[#7E7E7E] cursor-not-allowed'
               }`}
             >
               {submitting
