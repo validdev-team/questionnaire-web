@@ -8,6 +8,8 @@ export default function UserQuestionnaire() {
   const [loading, setLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchQuestions();
@@ -15,14 +17,46 @@ export default function UserQuestionnaire() {
 
   const fetchQuestions = async () => {
     try {
-      const response = await fetch('/api/questions');
-      if (!response.ok) {
-        throw new Error('Failed to fetch questions');
-      }
-      const data = await response.json();
-      console.log("questions fetched: ", data)
-      setQuestions(data);
+      // const response = await fetch('/api/questions');
+      // if (!response.ok) {
+      //   throw new Error('Failed to fetch questions');
+      // }
+      // const data = await response.json();
+      // console.log("questions fetched: ", data)
+      // setQuestions(data);
 
+      // Mock data for demo - replace with your API call
+      const mockData = [
+        {
+          id: "69zjx5aQdJSpZmeusE6u",
+          question: "Which area(s) will help your company strengthen its workforce development?",
+          choices: [
+            { text: "Skills-based Hiring Techniques and Practices" },
+            { text: "Skills Gaps and Learning Need Analysis (TNA)" },
+            { text: "Career Progression Pathway and Competency Framework" },
+            { text: "Job Redesign & Reskilling" },
+            { text: "On-the-Job Training (OJT)" },
+            { text: "Digital & AI-enabled Learning" },
+            { text: "Learning from Global and Local Best Practices" },
+            { text: "Mentoring & Coaching" },
+            { text: "Lean & Process Improvement" }
+          ]
+        },
+        {
+          id: "nslxetFEX6wQWVVqKSjB",
+          question: "What challenges does your organization face in workforce development?",
+          choices: [
+            { text: "Limited Budget" },
+            { text: "Lack of Leadership Support" },
+            { text: "Employee Resistance" },
+            { text: "Time Constraints" },
+            { text: "Skills Assessment" },
+            { text: "Technology Adoption" }
+          ]
+        }
+      ];
+      
+      setQuestions(mockData);
     } catch (error) {
       console.error('Error fetching questions:', error);
       setError('Failed to load questions. Please try again.');
@@ -48,9 +82,28 @@ export default function UserQuestionnaire() {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleReset = () => {
+    setAnswers(prev => ({
+      ...prev,
+      [questions[currentQuestionIndex].id]: []
+    }));
+  };
 
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+    } else {
+      handleSubmit();
+    }
+  };
+
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
     if (submitting) return;
     setSubmitting(true);
 
@@ -87,21 +140,19 @@ export default function UserQuestionnaire() {
     );
   }
 
-    if (questions.length === 0) {
+  if (questions.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <div className="text-red-500 text-6xl mb-4">⚠</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Error</h2>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Retry
-            </button>
-          </div>
+      <div className="max-w-2xl mx-auto px-4">
+        <div className="bg-white rounded-lg shadow p-8 text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Error</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -127,52 +178,78 @@ export default function UserQuestionnaire() {
     );
   }
 
+  const currentQuestion = questions[currentQuestionIndex];
+  const currentAnswers = answers[currentQuestion?.id] || [];
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">Survey Questions</h2>
+    <div className="max-w-4xl mx-auto px-4 my-auto">
+      {/* Question Header */}
+      <div className="mb-8">
+        <p className="text-sm text-gray-600 mb-2">
+          Question {currentQuestionIndex + 1}/{questions.length}
+        </p>
+        <h2 className="text-2xl font-bold text-gray-900 leading-tight">
+          {currentQuestion.question}
+        </h2>
+      </div>
 
-          {questions.length === 0 ? (
-            <p className="text-gray-600 text-center py-8">No questions available at the moment.</p>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {questions.map((question) => (
-                <div key={question.id} className="border-b border-gray-200 pb-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    {question.question}
-                  </h3>
-                  <div className="space-y-3">
-                    {question.choices?.map((choice, index) => (
-                      <label key={index} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          checked={answers[question.id]?.includes(index) || false}
-                          onChange={() => handleAnswerChange(question.id, index)}
-                        />
-                        <span className="ml-3 text-gray-700">{choice.text}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
+      {/* Answer Options Grid */}
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        {currentQuestion.choices?.map((choice, index) => {
+          const isSelected = currentAnswers.includes(index);
+          return (
+            <button
+              key={index}
+              onClick={() => handleAnswerChange(currentQuestion.id, index)}
+              className={`py-4 px-2 rounded-lg border-2 text-left transition-all duration-200 aspect-square flex items-center justify-center text-center ${
+                isSelected
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <span className="font-medium text-sm leading-tight">
+                {choice.text}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-              <div className="pt-6">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className={`w-full font-bold py-3 px-4 rounded-lg transition duration-200 ${
-                    submitting
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                >
-                  {submitting ? 'Submitting...' : 'Submit Survey'}
-                </button>
-              </div>
-            </form>
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <button
+          onClick={handleReset}
+          className="flex-1 py-3 px-6 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+        >
+          Reset
+        </button>
+        
+        <div className="flex gap-4 flex-1">
+          {currentQuestionIndex > 0 && (
+            <button
+              onClick={handlePreviousQuestion}
+              className="flex-1 py-3 px-6 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium"
+            >
+              Previous
+            </button>
           )}
+          
+          <button
+            onClick={handleNextQuestion}
+            disabled={submitting}
+            className={`flex-1 py-3 px-6 rounded-lg font-medium transition-colors duration-200 ${
+              submitting
+                ? 'bg-gray-400 cursor-not-allowed text-white'
+                : 'bg-gray-600 hover:bg-gray-700 text-white'
+            }`}
+          >
+            {submitting
+              ? 'Submitting...'
+              : currentQuestionIndex === questions.length - 1
+              ? 'Submit Survey'
+              : 'Next Question'
+            }
+          </button>
         </div>
       </div>
     </div>
