@@ -151,7 +151,7 @@ export default function UserQuestionnaire() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-white text-[#0F0251]">
-      <div className="max-w-md mx-auto px-4 my-auto">
+      <div className="max-w-md mx-auto px-4 my-auto min-w-full">
         {/* Previous button */}
         {currentQuestionIndex > 0 && (
           <button
