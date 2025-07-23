@@ -184,6 +184,20 @@ export default function UserQuestionnaire() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 my-auto">
+      {/* Previous button */}
+      {currentQuestionIndex > 0 && (
+        <button
+          onClick={handlePreviousQuestion}
+          className="mb-4 w-8 h-8 bg-[#0F0251] text-white rounded-full flex items-center justify-center transition-colors duration-200 flex-shrink-0"
+        >
+          <img 
+            src="/left-button.svg" 
+            alt="Previous" 
+            className="w-8 h-8"
+          />
+        </button>
+      )}
+
       {/* Question Header */}
       <div className="mb-8">
         <p className="text-sm mb-2">
@@ -230,15 +244,6 @@ export default function UserQuestionnaire() {
         </button>
         
         <div className="flex gap-2 flex-1">
-          {currentQuestionIndex > 0 && (
-            <button
-              onClick={handlePreviousQuestion}
-              className="flex-1 py-3 px-6 border-1 bg-gray-600 text-white rounded-lg transition-colors duration-200"
-            >
-              Previous
-            </button>
-          )}
-          
           <button
             onClick={handleNextQuestion}
             disabled={submitting}
@@ -253,7 +258,7 @@ export default function UserQuestionnaire() {
             {submitting
               ? 'Submitting...'
               : currentQuestionIndex === questions.length - 1
-              ? 'Submit Survey'
+              ? 'Submit'
               : 'Next Question'
             }
           </button>
