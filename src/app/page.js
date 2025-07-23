@@ -251,7 +251,9 @@ export default function UserQuestionnaire() {
               submitting
                 ? 'bg-gray-400 cursor-not-allowed text-white'
                 : hasAnswers
-                ? 'bg-[#0F0251] text-white border-[#0F0251]'
+                ? currentQuestionIndex === questions.length - 1
+                  ? 'bg-[#2A51FE] text-white border-[#2A51FE]'
+                  : 'bg-[#0F0251] text-white border-[#0F0251]'
                 : 'bg-[#7E7E7E] text-white border-[#7E7E7E]'
             }`}
           >
