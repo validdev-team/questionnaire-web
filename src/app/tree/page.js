@@ -145,6 +145,7 @@ const LEAF_CONFIG = [
     const LeafSegment = ({ leaf, onVoteReceived }) => {
     const [count, setCount] = useState(leaf.initialCount);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [bounceKey, setBounceKey] = useState(0);
     const animationRef = useRef(null);
 
     // Calculate leaf size based on vote count (grows with more votes)
@@ -153,8 +154,14 @@ const LEAF_CONFIG = [
     // Handle new vote received
     const handleVote = () => {
         setCount(prev => prev + 1);
+        triggerBounce();
         triggerAnimation();
         onVoteReceived?.(leaf.id, count + 1);
+    };
+
+    // Trigger bounce animation by changing the key to force re-render
+    const triggerBounce = () => {
+        setBounceKey(prev => prev + 1);
     };
 
     // Trigger WebM animation when vote is received
@@ -173,12 +180,14 @@ const LEAF_CONFIG = [
 
     return (
         <div 
+        key={bounceKey}
         className="absolute cursor-pointer transition-transform duration-500 ease-out"
         style={{
             left: `${leaf.x}px`,
             top: `${leaf.y}px`,
             transform: `scale(${leafScale})`,
-            transformOrigin: 'center center'
+            transformOrigin: 'center center',
+            animation: bounceKey > 0 ? 'bounce-custom 0.5s ease-out' : 'none'
         }}
         onClick={handleVote} // Remove this in production - just for testing
         >
@@ -235,12 +244,19 @@ const LEAF_CONFIG = [
     const RootCircle = ({ root, onVoteReceived }) => {
     const [count, setCount] = useState(root.initialCount);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [bounceKey, setBounceKey] = useState(0);
     const animationRef = useRef(null);
 
     const handleVote = () => {
         setCount(prev => prev + 1);
+        triggerBounce();
         triggerAnimation();
         onVoteReceived?.(root.id, count + 1);
+    };
+
+    // Trigger bounce animation by changing the key to force re-render
+    const triggerBounce = () => {
+        setBounceKey(prev => prev + 1);
     };
 
     const triggerAnimation = () => {
@@ -257,10 +273,13 @@ const LEAF_CONFIG = [
 
     return (
         <div 
+        key={bounceKey}
         className="absolute cursor-pointer"
         style={{
             left: `${root.x}px`,
-            top: `${root.y}px`
+            top: `${root.y}px`,
+            transformOrigin: 'center center',
+            animation: bounceKey > 0 ? 'bounce-custom 0.5s ease-out' : 'none'
         }}
         onClick={handleVote}
         >
@@ -422,7 +441,23 @@ const LEAF_CONFIG = [
         {/* ============================== */}
         <style jsx>{`
             .text-shadow {
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+            }
+
+            @keyframes bounce-custom {
+                0% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.15);
+                }
+                100% {
+                    transform: scale(1);
+                }
+            }
+
+            .animate-bounce-custom {
+                animation: bounce-custom 0.3s ease-out;
             }
         `}</style>
         </div>
