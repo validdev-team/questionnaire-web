@@ -149,7 +149,7 @@ const LEAF_CONFIG = [
     const animationRef = useRef(null);
 
     // Calculate leaf size based on vote count (grows with more votes)
-    const leafScale = 2.8 + (count / 200); // Adjust divisor to control growth rate
+    const leafScale = 2.8 + (count / 10); // Adjust divisor to control growth rate
     
     // Handle new vote received
     const handleVote = () => {
@@ -181,17 +181,25 @@ const LEAF_CONFIG = [
     return (
         <div 
         key={bounceKey}
-        className="absolute cursor-pointer transition-transform duration-500 ease-out"
+        className="absolute cursor-pointer transition-transform"
         style={{
             left: `${leaf.x}px`,
             top: `${leaf.y}px`,
             transform: `scale(${leafScale})`,
             transformOrigin: 'center center',
-            animation: bounceKey > 0 ? 'bounce-custom 0.5s ease-out' : 'none'
         }}
         onClick={handleVote} // Remove this in production - just for testing
         >
-        {/* Static SVG Leaf */}
+        
+        {/* Inner wrapper for bounce */}
+        <div
+        className="transition-transform"
+        style={{
+            animation: bounceKey > 0 ? 'bounce-custom 0.5s ease-out' : 'none',
+            transformOrigin: 'center center',
+        }}>
+
+        {/* Static SVG Leaf and text */}
         <div className="relative w-20 h-16">
             <img 
             src={`/svg/${leaf.svgFile}`}
@@ -215,6 +223,7 @@ const LEAF_CONFIG = [
                 {count}
             </div>
             </div>
+        </div>
         </div>
 
         {/* WebM Animation Overlay - Only visible when animating */}
