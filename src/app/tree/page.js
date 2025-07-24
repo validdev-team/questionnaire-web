@@ -38,9 +38,6 @@ const TreePage = () => {
         } else if (isRootVote) {
             setTotalRootCount(prev => prev + 1);
         }
-
-        // Here you would typically send the vote to your backend
-        console.log(`Vote received for ${elementId}, new count: ${newCount}, total votes: ${totalVotes + 1}, total leaf count: ${totalLeafCount + (isLeafVote ? 1 : 0)}, total root count: ${totalRootCount + (isRootVote ? 1 : 0)}`);
     };
 
     return (

@@ -20,7 +20,6 @@ const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
         e.preventDefault();
         e.stopPropagation();
         onVoteReceived?.(root.id, count + 1, root.animationFile);
-        console.log("RootScale: ", rootScale);
     };
 
     // Trigger bounce animation
@@ -75,7 +74,7 @@ const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
                         {count}
                     </span>
                 </div>
-                <div className="text-[10px] font-medium leading-tight mb-[1px] text-center px-6">
+                <div className="text-[10px] font-medium leading-tight mb-[1px] text-center px-6 text-black">
                     {root.question}
                 </div>
             </div>
