@@ -1,22 +1,25 @@
 'use client';
 import React, { useState, useRef } from 'react';
 
-const LeafSegment = ({ leaf, onVoteReceived }) => {
+const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
     const [count, setCount] = useState(leaf.initialCount);
     const [isAnimating, setIsAnimating] = useState(false);
     const [shouldBounce, setShouldBounce] = useState(false);
     const animationRef = useRef(null);
 
-    // Calculate leaf size based on vote count (grows with more votes)
-    const leafScale = Math.min(2.6 + (count / 10), 3); // Adjust divisor to control growth rate
-
+    // Calculate leaf size based on TOTAL leaf count across all leaves
+    let leafScale = Math.min(2.6 + (count/totalLeafCount), 3.6);
+    if (!leafScale) {
+        leafScale = 2.6;
+    }
+    
     // Handle new vote received
     const handleVote = () => {
         setCount(prev => prev + 1);
         triggerBounce();
         triggerAnimation();
         onVoteReceived?.(leaf.id, count + 1, leaf.animationFile);
-        console.log("LeafScale: ", leafScale)
+        console.log("LeafScale: ", leafScale);
     };
 
     // Trigger bounce animation by changing the key to force re-render
@@ -27,7 +30,6 @@ const LeafSegment = ({ leaf, onVoteReceived }) => {
     const handleBounceEnd = () => {
         setShouldBounce(false);
     };
-
 
     // Trigger WebM animation when vote is received
     const triggerAnimation = () => {
