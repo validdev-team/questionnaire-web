@@ -48,7 +48,7 @@ export const LEAF_CONFIG = [
         id: "leaf_5",
         zIndex: 1,
         x: 600,
-        y: 150,
+        y: 165,
         question: "On-the-Job Training (OJT)",
         initialCount: 0,
         svgFile: "5_Leaf.svg",
