@@ -98,7 +98,7 @@ const TreePage = () => {
                     className="w-full h-full object-cover"
                     onError={(e) => {
                         console.error('Ground SVG failed to load');
-                        e.target.style.background = 'linear-gradient(to bottom, #DEB887, #CD853F)';
+                        e.target.style.background = 'linear-gradient(to bottom, #f5e5c0, #8B4513, #f5e5c0)';
                     }}
                 />
             </div>
