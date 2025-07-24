@@ -49,6 +49,7 @@ const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
             style={{
                 left: `${root.x}px`,
                 top: `${root.y}px`,
+                zIndex: root.zIndex,
                 transform: `scale(${finalScale})`,
                 transformOrigin: 'center center',
                 transition: isBouncing ? 'transform 0.5s bounce-custom' : 'transform 0.2s ease-out',

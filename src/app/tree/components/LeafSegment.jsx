@@ -51,6 +51,7 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
             style={{
                 left: `${leaf.x}px`,
                 top: `${leaf.y}px`,
+                zIndex: leaf.zIndex,
                 transform: `scale(${leafScale})`,
                 transformOrigin: 'center center',
             }}
