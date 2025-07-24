@@ -115,7 +115,7 @@ const TreePage = () => {
                     }}
                 />
                 <img
-                    src="/svg/Bg Leaves.svg"
+                    src="/svg/BgLeaves.svg"
                     alt="Background leaves"
                     className="absolute top-[60px] w-[800px] object-contain z-0"
                     onError={(e) => {
