@@ -8,7 +8,7 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
     const animationRef = useRef(null);
 
     // Calculate leaf size based on TOTAL leaf count across all leaves
-    let leafScale = Math.min(2.6 + (count / (totalLeafCount || 1)), 3.6);
+    let leafScale = Math.min(2.6 + ((count / (totalLeafCount || 1)) * 2), 3.6);
     if (!leafScale) {
         leafScale = 2.6;
     }

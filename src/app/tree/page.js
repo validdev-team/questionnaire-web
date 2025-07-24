@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useEffect, useRef } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import LeafSegment from './components/LeafSegment';
 import RootCircle from './components/RootCircle';
 import TreeStyles from './components/TreeStyles';
@@ -26,18 +27,9 @@ const TreePage = () => {
         return ROOT_CONFIG.reduce((sum, root) => sum + root.initialCount, 0);
     });
 
-    const [isAnimating, setIsAnimating] = useState(false);
-    const [currentAnimation, setCurrentAnimation] = useState(null);
+    const [activeAnimations, setActiveAnimations] = useState([]);
     const [videoLoaded, setVideoLoaded] = useState(false);
     const animationRef = useRef(null);
-
-    // Preload the video when component mounts - but only when currentAnimation changes
-    useEffect(() => {
-        if (animationRef.current && currentAnimation) {
-            console.log(`Loading video: /animation/${currentAnimation}`);
-            animationRef.current.load();
-        }
-    }, [currentAnimation]);
 
     // Handle vote received from any leaf or root
     const handleVoteReceived = (elementId, newCount, animationFile) => {
@@ -61,54 +53,18 @@ const TreePage = () => {
     };
 
     // Trigger animation on tree trunk
-    const triggerTreeAnimation = async (animationFile) => {
-        if (isAnimating) {
-            console.log(`Animation already playing, skipping: ${animationFile}`);
-            return;
-        }
+    const triggerTreeAnimation = (animationFile) => {
+        const newAnimation = {
+            id: uuidv4(),
+            file: animationFile,
+        };
 
-        if (!animationRef.current) {
-            console.warn(`No animation ref available`);
-            return;
-        }
+        setActiveAnimations(prev => [...prev, newAnimation]);
 
-        try {
-            console.log(`Starting tree animation: /animation/${animationFile}`);
-            setIsAnimating(true);
-            setCurrentAnimation(animationFile);
-
-            // Wait a bit for the video to load if needed
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            const video = animationRef.current;
-            video.currentTime = 0;
-
-            console.log(`Playing tree animation: /animation/${animationFile}`);
-            await video.play();
-
-        } catch (error) {
-            console.error(`Failed to play tree animation:`, error);
-            setIsAnimating(false);
-            setCurrentAnimation(null);
-        }
-    };
-
-    const handleAnimationEnd = () => {
-        console.log(`Tree animation ended`);
-        setIsAnimating(false);
-        setCurrentAnimation(null);
-    };
-
-    const handleVideoError = (e) => {
-        console.error(`Tree video error:`, e.target.error);
-        setIsAnimating(false);
-        setVideoLoaded(false);
-        setCurrentAnimation(null);
-    };
-
-    const handleVideoCanPlay = () => {
-        setVideoLoaded(true);
-        console.log(`Video loaded and ready to play: ${currentAnimation}`);
+        // Auto-remove animation after it finishes (e.g., 2 seconds)
+        setTimeout(() => {
+            setActiveAnimations(prev => prev.filter(a => a.id !== newAnimation.id));
+        }, 2000); // adjust to match actual video length
     };
 
     return (
@@ -169,31 +125,27 @@ const TreePage = () => {
                 />
 
                 {/* WebM Animation Overlay - Always present but only visible when animating */}
-                <video
-                    ref={animationRef}
-                    className={`absolute h-[60%] pl-3 pb-10 flex items-center justify-center object-contain pointer-events-none transition-opacity duration-200 ${
-                        isAnimating ? 'opacity-100' : 'opacity-0'
-                    }`}
-                    style={{
-                        zIndex: isAnimating ? 50 : -1,
-                        transform: 'scale(3.5)', // Increased scale to make it more visible
-                        transformOrigin: 'center center'
-                    }}
-                    muted
-                    playsInline
-                    preload="auto"
-                    onCanPlay={handleVideoCanPlay}
-                    onEnded={handleAnimationEnd}
-                    onError={handleVideoError}
-                    onLoadStart={() => console.log(`Loading started for: ${currentAnimation}`)}
-                >
-                    {currentAnimation && (
-                        <>
-                            <source src={`/animation/${currentAnimation}`} type="video/webm" />
-                            <source src={`/animation/${currentAnimation.replace('.webm', '.mp4')}`} type="video/mp4" />
-                        </>
-                    )}
-                </video>
+                {activeAnimations.map(anim => (
+                    <video
+                        key={anim.id}
+                        className="absolute h-[60%] pl-3 pb-10 object-contain pointer-events-none opacity-100"
+                        style={{
+                            zIndex: 50,
+                            transform: 'scale(3.5)',
+                            transformOrigin: 'center center'
+                        }}
+                        muted
+                        playsInline
+                        autoPlay
+                        onEnded={() => {
+                            setActiveAnimations(prev => prev.filter(a => a.id !== anim.id));
+                        }}
+                    >
+                        <source src={`/animation/${anim.file}`} type="video/webm" />
+                        <source src={`/animation/${anim.file.replace('.webm', '.mp4')}`} type="video/mp4" />
+                    </video>
+                ))}
+
             </div>
 
             {/* ============================== */}
@@ -247,11 +199,11 @@ const TreePage = () => {
             {/* Debug info - Remove this in production */}
             {process.env.NODE_ENV === 'development' && (
                 <div className="absolute top-6 left-6 px-4 py-2 bg-black bg-opacity-50 text-white text-sm z-50">
-                    <div>Current Animation: {currentAnimation || 'None'}</div>
-                    <div>Is Animating: {isAnimating ? 'Yes' : 'No'}</div>
+                    <div>Active Animations: {activeAnimations.length}</div>
                     <div>Video Loaded: {videoLoaded ? 'Yes' : 'No'}</div>
                 </div>
             )}
+
         </div>
     );
 };
