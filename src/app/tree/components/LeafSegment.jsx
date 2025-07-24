@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 const LeafSegment = ({ leaf, onVoteReceived }) => {
     const [count, setCount] = useState(leaf.initialCount);
     const [isAnimating, setIsAnimating] = useState(false);
-    const [bounceKey, setBounceKey] = useState(0);
+    const [shouldBounce, setShouldBounce] = useState(false);
     const animationRef = useRef(null);
 
     // Calculate leaf size based on vote count (grows with more votes)
@@ -21,8 +21,13 @@ const LeafSegment = ({ leaf, onVoteReceived }) => {
 
     // Trigger bounce animation by changing the key to force re-render
     const triggerBounce = () => {
-        setBounceKey(prev => prev + 1);
+        setShouldBounce(true);
     };
+
+    const handleBounceEnd = () => {
+        setShouldBounce(false);
+    };
+
 
     // Trigger WebM animation when vote is received
     const triggerAnimation = () => {
@@ -40,7 +45,6 @@ const LeafSegment = ({ leaf, onVoteReceived }) => {
 
     return (
         <div
-            key={bounceKey}
             className="absolute cursor-pointer transition-transform"
             style={{
                 left: `${leaf.x}px`,
@@ -48,16 +52,17 @@ const LeafSegment = ({ leaf, onVoteReceived }) => {
                 transform: `scale(${leafScale})`,
                 transformOrigin: 'center center',
             }}
-            onClick={handleVote} // Remove this in production - just for testing
+            onClick={handleVote}
         >
-            {/* Inner wrapper for bounce */}
+            {/* Inner wrapper for bounce animation */}
             <div
                 className="transition-transform"
                 style={{
-                    animation: bounceKey > 0 ? 'bounce-custom 0.5s ease-out' : 'none',
+                    animation: shouldBounce ? 'bounce-custom 0.5s ease-out' : 'none',
                     transformOrigin: 'center center',
-                }}>
-
+                }}
+                onAnimationEnd={handleBounceEnd}
+            >
                 {/* Static SVG Leaf and text */}
                 <div className="relative w-20 h-16">
                     <img
