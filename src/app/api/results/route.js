@@ -1,3 +1,4 @@
+// app/api/results/route.js
 import { NextResponse } from 'next/server';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';

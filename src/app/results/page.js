@@ -6,24 +6,42 @@ import { db } from '../../../lib/firebase';
 
 export default function ResultsPage() {
   const [questions, setQuestions] = useState([]);
+  const [totalResponses, setTotalResponses] = useState(0); // State for total responses count
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Single listener for both questions and responses count
     const unsubscribe = onSnapshot(collection(db, 'questions'), (snapshot) => {
-        const questionList = snapshot.docs.map(doc => ({
+      const questionList = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-        }));
-        setQuestions(questionList);
-        setLoading(false);
+      }));
+
+      // Update the state with the new questions list
+      setQuestions(questionList);
+      
+      // Fetch the number of responses by subscribing to the 'responses' collection
+      const unsubscribeResponses = onSnapshot(collection(db, 'responses'), (responseSnapshot) => {
+        setTotalResponses(responseSnapshot.size); // Update total responses count
+      }, (error) => {
+        console.error('Error fetching responses count:', error);
+      });
+
+      setLoading(false);
+
+      // Clean up the responses listener when the component unmounts
+      return () => {
+        unsubscribeResponses(); // Unsubscribe from responses collection listener
+      };
+
     }, (error) => {
-        console.error('Error fetching realtime results:', error);
-        setLoading(false);
+      console.error('Error fetching questions:', error);
+      setLoading(false);
     });
 
-    // Clean up listener on unmount
+    // Clean up questions listener on unmount
     return () => unsubscribe();
-    }, []);
+  }, []);
 
   const fetchResults = async () => {
     try {
@@ -58,6 +76,11 @@ export default function ResultsPage() {
       <div className="max-w-4xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Survey Results</h2>
+          
+          {/* Display Total Responses */}
+          <div className="text-sm text-gray-500 mb-6">
+            Total Responses: {totalResponses}
+          </div>
           
           {questions.length === 0 ? (
             <p className="text-gray-600 text-center py-8">No survey data available.</p>
