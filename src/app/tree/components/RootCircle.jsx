@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
     const [count, setCount] = useState(root.initialCount);
     const [isAnimating, setIsAnimating] = useState(false);
-    const [shouldBounce, setShouldBounce] = useState(false);
+    const [isBouncing, setIsBouncing] = useState(false);
     const animationRef = useRef(null);
 
     // Calculate root size based on individual root count relative to total
@@ -23,11 +23,9 @@ const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
 
     // Trigger bounce animation
     const triggerBounce = () => {
-        setShouldBounce(true);
-    };
-
-    const handleBounceEnd = () => {
-        setShouldBounce(false);
+        setIsBouncing(true);
+        // Reset bounce after animation duration
+        setTimeout(() => setIsBouncing(false), 300);
     };
 
     const triggerAnimation = () => {
@@ -42,18 +40,20 @@ const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
         setIsAnimating(false);
     };
 
+    // Calculate final transform including both scale and bounce
+    const finalScale = rootScale * (isBouncing ? 1.15 : 1);
+
     return (
         <div
-            className="absolute cursor-pointer transition-transform"
+            className="absolute cursor-pointer"
             style={{
                 left: `${root.x}px`,
                 top: `${root.y}px`,
-                transform: `scale(${rootScale})`,
+                transform: `scale(${finalScale})`,
                 transformOrigin: 'center center',
-                animation: shouldBounce ? 'bounce-custom 0.5s ease-out' : 'none',
+                transition: isBouncing ? 'transform 0.5s bounce-custom' : 'transform 0.2s ease-out',
             }}
             onClick={handleVote}
-            onAnimationEnd={handleBounceEnd}
         >
             {/* Static SVG Circle */}
             <div className="relative w-48 h-14">

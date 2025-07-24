@@ -22,7 +22,7 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
         console.log("LeafScale: ", leafScale);
     };
 
-    // Trigger bounce animation by changing the key to force re-render
+    // Trigger bounce animation
     const triggerBounce = () => {
         setShouldBounce(true);
     };
