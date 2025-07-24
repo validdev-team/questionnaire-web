@@ -1,22 +1,33 @@
 'use client';
 import React, { useState, useRef } from 'react';
 
-const RootCircle = ({ root, onVoteReceived }) => {
+const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
     const [count, setCount] = useState(root.initialCount);
     const [isAnimating, setIsAnimating] = useState(false);
-    const [bounceKey, setBounceKey] = useState(0);
+    const [shouldBounce, setShouldBounce] = useState(false);
     const animationRef = useRef(null);
+
+    // Calculate root size based on individual root count relative to total
+    let rootScale = Math.min(1 + (count/totalRootCount), 1.2);
+    if (!rootScale) {
+        rootScale = 1;
+    }
 
     const handleVote = () => {
         setCount(prev => prev + 1);
         triggerBounce();
         triggerAnimation();
         onVoteReceived?.(root.id, count + 1, root.animationFile);
+        console.log("RootScale: ", rootScale);
     };
 
-    // Trigger bounce animation by changing the key to force re-render
+    // Trigger bounce animation
     const triggerBounce = () => {
-        setBounceKey(prev => prev + 1);
+        setShouldBounce(true);
+    };
+
+    const handleBounceEnd = () => {
+        setShouldBounce(false);
     };
 
     const triggerAnimation = () => {
@@ -33,22 +44,23 @@ const RootCircle = ({ root, onVoteReceived }) => {
 
     return (
         <div
-            key={bounceKey}
-            className="absolute cursor-pointer"
+            className="absolute cursor-pointer transition-transform"
             style={{
                 left: `${root.x}px`,
                 top: `${root.y}px`,
+                transform: `scale(${rootScale})`,
                 transformOrigin: 'center center',
-                animation: bounceKey > 0 ? 'bounce-custom 0.5s ease-out' : 'none'
+                animation: shouldBounce ? 'bounce-custom 0.5s ease-out' : 'none',
             }}
             onClick={handleVote}
+            onAnimationEnd={handleBounceEnd}
         >
             {/* Static SVG Circle */}
-            <div className="relative w-40 h-20">
+            <div className="relative w-48 h-14">
                 <img
                     src={`/svg/${root.svgFile}`}
                     alt={`Root ${root.id}`}
-                    className="w-20 h-20 object-contain place-self-center"
+                    className="w-14 h-14 object-contain place-self-center drop-shadow-md mb-1"
                     onError={(e) => {
                         console.error(`Failed to load root SVG: ${root.svgFile}`);
                     }}
@@ -60,11 +72,8 @@ const RootCircle = ({ root, onVoteReceived }) => {
                         {count}
                     </span>
                 </div>
-                <div className="text-[12px] font-medium leading-tight mb-[1px] text-center">
-                    {root.question.length > 40 ?
-                        root.question.substring(0, 40) + '...' :
-                        root.question
-                    }
+                <div className="text-[10px] font-medium leading-tight mb-[1px] text-center px-6">
+                    {root.question}
                 </div>
             </div>
 
