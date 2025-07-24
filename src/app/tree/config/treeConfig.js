@@ -100,8 +100,8 @@ export const ROOT_CONFIG = [
     },
     {
         id: "B",
-        x: 400,
-        y: 580,
+        x: 395,
+        y: 590,
         question: "Lack of Structured Training Plan for workforce development",
         initialCount: 0,
         svgFile: "Circle-Shadow.svg",
@@ -118,8 +118,8 @@ export const ROOT_CONFIG = [
     },
     {
         id: "D",
-        x: 760,
-        y: 580,
+        x: 765,
+        y: 590,
         question: "Downtime due to training that disrupts daily operations",
         initialCount: 0,
         svgFile: "Circle-Shadow.svg",
