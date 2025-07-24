@@ -55,7 +55,6 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
                 zIndex: leaf.zIndex,
                 transform: `scale(${leafScale})`,
                 transformOrigin: 'center center',
-                zIndex: 10
             }}
             onClick={handleVote}
         >
