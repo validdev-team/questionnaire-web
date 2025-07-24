@@ -13,10 +13,12 @@ const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
         rootScale = 1;
     }
 
-    const handleVote = () => {
+    const handleVote = (e) => {
         setCount(prev => prev + 1);
         triggerBounce();
         triggerAnimation();
+        e.preventDefault();
+        e.stopPropagation();
         onVoteReceived?.(root.id, count + 1, root.animationFile);
         console.log("RootScale: ", rootScale);
     };
@@ -66,7 +68,7 @@ const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
                         console.error(`Failed to load root SVG: ${root.svgFile}`);
                     }}
                 />
-
+                
                 {/* Count Display */}
                 <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-white font-bold text-lg">
@@ -78,23 +80,12 @@ const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
                 </div>
             </div>
 
-            {/* WebM Animation Overlay - Only visible when animating */}
-            {isAnimating && (
-                <video
-                    ref={animationRef}
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                    style={{ zIndex: 10 }}
-                    muted
-                    playsInline
-                    onEnded={handleAnimationEnd}
-                    onError={(e) => {
-                        console.error(`Failed to load animation: ${root.animationFile}`);
-                        setIsAnimating(false);
-                    }}
-                >
-                    <source src={`/animation/${root.animationFile}`} type="video/webm" />
-                </video>
-            )}
+            {/* Custom CSS for text shadow */}
+            <style jsx>{`
+                .text-shadow {
+                    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+                }
+            `}</style>
         </div>
     );
 };

@@ -31,9 +31,10 @@ const TreePage = () => {
     const [videoLoaded, setVideoLoaded] = useState(false);
     const animationRef = useRef(null);
 
-    // Preload the video when component mounts
+    // Preload the video when component mounts - but only when currentAnimation changes
     useEffect(() => {
-        if (animationRef.current) {
+        if (animationRef.current && currentAnimation) {
+            console.log(`Loading video: /animation/${currentAnimation}`);
             animationRef.current.load();
         }
     }, [currentAnimation]);
@@ -61,11 +62,23 @@ const TreePage = () => {
 
     // Trigger animation on tree trunk
     const triggerTreeAnimation = async (animationFile) => {
-        if (isAnimating || !animationRef.current) return;
+        if (isAnimating) {
+            console.log(`Animation already playing, skipping: ${animationFile}`);
+            return;
+        }
+
+        if (!animationRef.current) {
+            console.warn(`No animation ref available`);
+            return;
+        }
 
         try {
+            console.log(`Starting tree animation: /animation/${animationFile}`);
             setIsAnimating(true);
             setCurrentAnimation(animationFile);
+
+            // Wait a bit for the video to load if needed
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             const video = animationRef.current;
             video.currentTime = 0;
@@ -76,6 +89,7 @@ const TreePage = () => {
         } catch (error) {
             console.error(`Failed to play tree animation:`, error);
             setIsAnimating(false);
+            setCurrentAnimation(null);
         }
     };
 
@@ -90,6 +104,11 @@ const TreePage = () => {
         setIsAnimating(false);
         setVideoLoaded(false);
         setCurrentAnimation(null);
+    };
+
+    const handleVideoCanPlay = () => {
+        setVideoLoaded(true);
+        console.log(`Video loaded and ready to play: ${currentAnimation}`);
     };
 
     return (
@@ -149,28 +168,32 @@ const TreePage = () => {
                     }}
                 />
 
-                {/* WebM Animation Overlay - Plays on top of tree trunk */}
-                {currentAnimation && (
-                    <video
-                        ref={animationRef}
-                        className={`absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-200 ${isAnimating ? 'opacity-100' : 'opacity-0'
-                            }`}
-                        style={{
-                            zIndex: isAnimating ? 1001 : -1,
-                            transform: 'scale(1.2)',
-                            transformOrigin: 'center center'
-                        }}
-                        muted
-                        playsInline
-                        preload="auto"
-                        onCanPlay={() => setVideoLoaded(true)}
-                        onEnded={handleAnimationEnd}
-                        onError={handleVideoError}
-                    >
-                        <source src={`/animation/${currentAnimation}`} type="video/webm" />
-                        <source src={`/animation/${currentAnimation.replace('.webm', '.mp4')}`} type="video/mp4" />
-                    </video>
-                )}
+                {/* WebM Animation Overlay - Always present but only visible when animating */}
+                <video
+                    ref={animationRef}
+                    className={`absolute h-[60%] pl-3 pb-10 flex items-center justify-center object-contain pointer-events-none transition-opacity duration-200 ${
+                        isAnimating ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    style={{
+                        zIndex: isAnimating ? 50 : -1,
+                        transform: 'scale(3.5)', // Increased scale to make it more visible
+                        transformOrigin: 'center center'
+                    }}
+                    muted
+                    playsInline
+                    preload="auto"
+                    onCanPlay={handleVideoCanPlay}
+                    onEnded={handleAnimationEnd}
+                    onError={handleVideoError}
+                    onLoadStart={() => console.log(`Loading started for: ${currentAnimation}`)}
+                >
+                    {currentAnimation && (
+                        <>
+                            <source src={`/animation/${currentAnimation}`} type="video/webm" />
+                            <source src={`/animation/${currentAnimation.replace('.webm', '.mp4')}`} type="video/mp4" />
+                        </>
+                    )}
+                </video>
             </div>
 
             {/* ============================== */}
@@ -220,6 +243,15 @@ const TreePage = () => {
                     />
                 ))}
             </div>
+
+            {/* Debug info - Remove this in production */}
+            {process.env.NODE_ENV === 'development' && (
+                <div className="absolute top-6 left-6 px-4 py-2 bg-black bg-opacity-50 text-white text-sm z-50">
+                    <div>Current Animation: {currentAnimation || 'None'}</div>
+                    <div>Is Animating: {isAnimating ? 'Yes' : 'No'}</div>
+                    <div>Video Loaded: {videoLoaded ? 'Yes' : 'No'}</div>
+                </div>
+            )}
         </div>
     );
 };
