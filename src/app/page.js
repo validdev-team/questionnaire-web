@@ -81,8 +81,7 @@ export default function UserQuestionnaire() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          answers,
-          timestamp: new Date().toISOString()
+          answers
         }),
       });
 

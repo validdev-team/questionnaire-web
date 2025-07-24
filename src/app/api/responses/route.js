@@ -5,14 +5,13 @@ import {
     addDoc,
     doc,
     updateDoc,
-    increment,
     getDoc
 } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
 
 export async function POST(request) {
     try {
-        const { answers, timestamp } = await request.json();
+        const { answers } = await request.json();
 
         // Validate request data
         if (!answers || typeof answers !== 'object') {
@@ -24,8 +23,7 @@ export async function POST(request) {
 
         // Save response
         await addDoc(collection(db, 'responses'), {
-            answers,
-            timestamp: new Date(timestamp)
+            answers
         });
 
         // Update vote counts
@@ -50,7 +48,6 @@ export async function POST(request) {
                     }
                 });
 
-                // Increment responseCount once per question
                 await updateDoc(questionRef, {
                     choices: updatedChoices
                 });
