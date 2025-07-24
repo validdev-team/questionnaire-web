@@ -6,7 +6,7 @@
 export const LEAF_CONFIG = [
     {
         id: "leaf_1",
-        zIndex: 1,
+        zIndex: 9,
         x: 375,
         y: 400,
         question: "Skills-based Hiring Techniques and Practices",
@@ -16,7 +16,7 @@ export const LEAF_CONFIG = [
     },
     {
         id: "leaf_2",
-        zIndex: 2,
+        zIndex: 8,
         x: 450,
         y: 315,
         question: "Skills Gaps and Learning Need Analysis (TNA)",
@@ -26,7 +26,7 @@ export const LEAF_CONFIG = [
     },
     {
         id: "leaf_3",
-        zIndex: 3,
+        zIndex: 7,
         x: 300,
         y: 260,
         question: "Career Progression Pathway and Competency Framework ",
@@ -36,7 +36,7 @@ export const LEAF_CONFIG = [
     },
     {
         id: "leaf_4",
-        zIndex: 4,
+        zIndex: 6,
         x: 465,
         y: 215,
         question: "Job Redesign & Reskilling",
