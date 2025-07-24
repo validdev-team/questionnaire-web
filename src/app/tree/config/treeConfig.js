@@ -6,7 +6,7 @@
 export const LEAF_CONFIG = [
     {
         id: "leaf_1",
-        zIndex: 5,
+        zIndex: 105,
         x: 375,
         y: 400,
         question: "Skills-based Hiring Techniques and Practices",
@@ -16,7 +16,7 @@ export const LEAF_CONFIG = [
     },
     {
         id: "leaf_2",
-        zIndex: 4,
+        zIndex: 104,
         x: 450,
         y: 315,
         question: "Skills Gaps and Learning Need Analysis (TNA)",
@@ -26,7 +26,7 @@ export const LEAF_CONFIG = [
     },
     {
         id: "leaf_3",
-        zIndex: 7,
+        zIndex: 103,
         x: 300,
         y: 260,
         question: "Career Progression Pathway and Competency Framework ",
@@ -36,7 +36,7 @@ export const LEAF_CONFIG = [
     },
     {
         id: "leaf_4",
-        zIndex: 2,
+        zIndex: 102,
         x: 465,
         y: 215,
         question: "Job Redesign & Reskilling",
@@ -46,9 +46,9 @@ export const LEAF_CONFIG = [
     },
     {
         id: "leaf_5",
-        zIndex: 1,
+        zIndex: 101,
         x: 600,
-        y: 150,
+        y: 165,
         question: "On-the-Job Training (OJT)",
         initialCount: 0,
         svgFile: "5_Leaf.svg",
@@ -56,7 +56,7 @@ export const LEAF_CONFIG = [
     },
     {
         id: "leaf_6",
-        zIndex: 2,
+        zIndex: 102,
         x: 750,
         y: 200,
         question: "Digital & AI-enabled Learning",
@@ -66,7 +66,7 @@ export const LEAF_CONFIG = [
     },
     {
         id: "leaf_7",
-        zIndex: 3,
+        zIndex: 103,
         x: 900,
         y: 250,
         question: "Learning from Global and Local Best Practices",
@@ -76,7 +76,7 @@ export const LEAF_CONFIG = [
     },
     {
         id: "leaf_8",
-        zIndex: 4,
+        zIndex: 104,
         x: 780,
         y: 310,
         question: "Mentoring & Coaching",
@@ -86,7 +86,7 @@ export const LEAF_CONFIG = [
     },
     {
         id: "leaf_9",
-        zIndex: 5,
+        zIndex: 105,
         x: 825,
         y: 400,
         question: "Lean & Process Improvement",
@@ -100,7 +100,7 @@ export const LEAF_CONFIG = [
 export const ROOT_CONFIG = [
     {
         id: "root_A",
-        zIndex: 10, // Higher z-index for roots to appear above leaves
+        zIndex: 110, // Higher z-index for roots to appear above leaves
         x: 210,
         y: 585,
         question: "Attracting right and skilled talent",
@@ -110,7 +110,7 @@ export const ROOT_CONFIG = [
     },
     {
         id: "root_B",
-        zIndex: 11,
+        zIndex: 111,
         x: 380,
         y: 600,
         question: "Lack of Structured Training Plan for workforce development",
@@ -120,7 +120,7 @@ export const ROOT_CONFIG = [
     },
     {
         id: "root_C",
-        zIndex: 12,
+        zIndex: 112,
         x: 560,
         y: 600,
         question: "Unsure how to develop and implement On-the-Job Training (OJT)",
@@ -130,7 +130,7 @@ export const ROOT_CONFIG = [
     },
     {
         id: "root_D",
-        zIndex: 13,
+        zIndex: 113,
         x: 750,
         y: 600,
         question: "Downtime due to training that disrupts daily operations",
@@ -140,7 +140,7 @@ export const ROOT_CONFIG = [
     },
     {
         id: "root_E",
-        zIndex: 14,
+        zIndex: 114,
         x: 920,
         y: 585,
         question: "Adapting digital and AI technology for workplace learning",

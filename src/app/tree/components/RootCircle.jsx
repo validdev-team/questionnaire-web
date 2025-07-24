@@ -8,7 +8,7 @@ const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
     const animationRef = useRef(null);
 
     // Calculate root size based on individual root count relative to total
-    let rootScale = Math.min(1 + (count/totalRootCount), 1.2);
+    let rootScale = Math.min(1 + ((count / (totalRootCount || 1)) * 1.5), 1.2);
     if (!rootScale) {
         rootScale = 1;
     }
