@@ -95,7 +95,7 @@ export const ROOT_CONFIG = [
         y: 570,
         question: "Attracting right and skilled talent",
         initialCount: 0,
-        svgFile: "Circle-Shadow.svg",
+        svgFile: "Circle-No Shadow.svg",
         animationFile: "A.webm"
     },
     {
@@ -104,7 +104,7 @@ export const ROOT_CONFIG = [
         y: 580,
         question: "Lack of Structured Training Plan for workforce development",
         initialCount: 0,
-        svgFile: "Circle-Shadow.svg",
+        svgFile: "Circle-No Shadow.svg",
         animationFile: "B.webm"
     },
     {
@@ -113,7 +113,7 @@ export const ROOT_CONFIG = [
         y: 590,
         question: "Unsure how to develop and implement On-the-Job Training (OJT)",
         initialCount: 0,
-        svgFile: "Circle-Shadow.svg",
+        svgFile: "Circle-No Shadow.svg",
         animationFile: "C.webm"
     },
     {
@@ -122,7 +122,7 @@ export const ROOT_CONFIG = [
         y: 580,
         question: "Downtime due to training that disrupts daily operations",
         initialCount: 0,
-        svgFile: "Circle-Shadow.svg",
+        svgFile: "Circle-No Shadow.svg",
         animationFile: "D.webm"
     },
     {
@@ -131,7 +131,7 @@ export const ROOT_CONFIG = [
         y: 570,
         question: "Adapting digital and AI technology for workplace learning",
         initialCount: 0,
-        svgFile: "Circle-Shadow.svg",
+        svgFile: "Circle-No Shadow.svg",
         animationFile: "E.webm"
     }
 ];

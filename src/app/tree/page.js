@@ -21,6 +21,11 @@ const TreePage = () => {
         return LEAF_CONFIG.reduce((sum, leaf) => sum + leaf.initialCount, 0);
     });
 
+    // Track total root count separately from total votes
+    const [totalRootCount, setTotalRootCount] = useState(() => {
+        return ROOT_CONFIG.reduce((sum, root) => sum + root.initialCount, 0);
+    });
+
     const [isAnimating, setIsAnimating] = useState(false);
     const [currentAnimation, setCurrentAnimation] = useState(null);
     const [videoLoaded, setVideoLoaded] = useState(false);
@@ -39,15 +44,19 @@ const TreePage = () => {
 
         // If this is a leaf vote, update the total leaf count
         const isLeafVote = LEAF_CONFIG.some(leaf => leaf.id === elementId);
+        const isRootVote = ROOT_CONFIG.some(root => root.id === elementId);
+        
         if (isLeafVote) {
             setTotalLeafCount(prev => prev + 1);
+        } else if (isRootVote) {
+            setTotalRootCount(prev => prev + 1);
         }
 
         // Trigger animation on tree trunk
         triggerTreeAnimation(animationFile);
 
         // Here you would typically send the vote to your backend
-        console.log(`Vote received for ${elementId}, new count: ${newCount}, total votes: ${totalVotes + 1}, total leaf count: ${totalLeafCount + (isLeafVote ? 1 : 0)}`);
+        console.log(`Vote received for ${elementId}, new count: ${newCount}, total votes: ${totalVotes + 1}, total leaf count: ${totalLeafCount + (isLeafVote ? 1 : 0)}, total root count: ${totalRootCount + (isRootVote ? 1 : 0)}`);
     };
 
     // Trigger animation on tree trunk
@@ -207,6 +216,7 @@ const TreePage = () => {
                         key={root.id}
                         root={root}
                         onVoteReceived={handleVoteReceived}
+                        totalRootCount={totalRootCount}
                     />
                 ))}
             </div>
