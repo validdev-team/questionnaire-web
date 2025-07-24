@@ -8,16 +8,18 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
     const animationRef = useRef(null);
 
     // Calculate leaf size based on TOTAL leaf count across all leaves
-    let leafScale = Math.min(2.6 + (count/totalLeafCount), 3.6);
+    let leafScale = Math.min(2.6 + ((count / (totalLeafCount || 1)) * 2), 3.6);
     if (!leafScale) {
         leafScale = 2.6;
     }
     
     // Handle new vote received
-    const handleVote = () => {
+    const handleVote = (e) => {
         setCount(prev => prev + 1);
         triggerBounce();
         triggerAnimation();
+        e.preventDefault();
+        e.stopPropagation();
         onVoteReceived?.(leaf.id, count + 1, leaf.animationFile);
         console.log("LeafScale: ", leafScale);
     };
@@ -54,6 +56,7 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
                 zIndex: leaf.zIndex,
                 transform: `scale(${leafScale})`,
                 transformOrigin: 'center center',
+                zIndex: 10
             }}
             onClick={handleVote}
         >
@@ -90,23 +93,12 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
                 </div>
             </div>
 
-            {/* WebM Animation Overlay - Only visible when animating */}
-            {isAnimating && (
-                <video
-                    ref={animationRef}
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                    style={{ zIndex: 10 }}
-                    muted
-                    playsInline
-                    onEnded={handleAnimationEnd}
-                    onError={(e) => {
-                        console.error(`Failed to load animation: ${leaf.animationFile}`);
-                        setIsAnimating(false);
-                    }}
-                >
-                    <source src={`/animation/${leaf.animationFile}`} type="video/webm" />
-                </video>
-            )}
+            {/* Custom CSS for text shadow */}
+            <style jsx>{`
+                .text-shadow {
+                    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+                }
+            `}</style>
         </div>
     );
 };
