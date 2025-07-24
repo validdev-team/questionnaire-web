@@ -1,61 +1,4 @@
 'use client';
-import React, { useState } from 'react';
-
-const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
-    const [count, setCount] = useState(leaf.initialCount);
-    const [isAnimating, setIsAnimating] = useState(false);
-    const [shouldBounce, setShouldBounce] = useState(false);
-    const animationRef = useRef(null);
-
-    // Calculate leaf size based on TOTAL leaf count across all leaves
-    let leafScale = Math.min(2.6 + (count/totalLeafCount), 3.6);
-    if (!leafScale) {
-        leafScale = 2.6;
-    }
-    
-    // Handle new vote received
-    const handleVote = (e) => {
-        setCount(prev => prev + 1);
-        triggerBounce();
-        triggerAnimation();
-        e.preventDefault();
-        e.stopPropagation();
-        onVoteReceived?.(leaf.id, count + 1, leaf.animationFile);
-        console.log("LeafScale: ", leafScale);
-    };
-
-    // Trigger bounce animation
-    const triggerBounce = () => {
-        setShouldBounce(true);
-    };
-
-    const handleBounceEnd = () => {
-        setShouldBounce(false);
-    };
-
-    // Trigger WebM animation when vote is received
-    const triggerAnimation = () => {
-        if (animationRef.current && !isAnimating) {
-            setIsAnimating(true);
-            animationRef.current.currentTime = 0;
-            animationRef.current.play();
-        }
-    };
-
-    // Reset animation state when WebM finishes playing
-    const handleAnimationEnd = () => {
-        setIsAnimating(false);
-    };
-
-    return (
-        <div
-            className="absolute cursor-pointer transition-transform"
-            style={{
-                left: `${leaf.x}px`,
-                top: `${leaf.y}px`,
-                zIndex: leaf.zIndex,
-                transform: `scale(${leafScale})`,
-'use client';
 import React, { useState, useRef } from 'react';
 
 const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
@@ -65,7 +8,7 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
     const animationRef = useRef(null);
 
     // Calculate leaf size based on TOTAL leaf count across all leaves
-    let leafScale = Math.min(2.6 + (count/totalLeafCount), 3.6);
+    let leafScale = Math.min(2.6 + (count / (totalLeafCount || 1)), 3.6);
     if (!leafScale) {
         leafScale = 2.6;
     }
