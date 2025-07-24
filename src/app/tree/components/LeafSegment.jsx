@@ -21,7 +21,6 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
         e.preventDefault();
         e.stopPropagation();
         onVoteReceived?.(leaf.id, count + 1, leaf.animationFile);
-        console.log("LeafScale: ", leafScale);
     };
 
     // Trigger bounce animation

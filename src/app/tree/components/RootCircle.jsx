@@ -20,7 +20,6 @@ const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
         e.preventDefault();
         e.stopPropagation();
         onVoteReceived?.(root.id, count + 1, root.animationFile);
-        console.log("RootScale: ", rootScale);
     };
 
     // Trigger bounce animation
