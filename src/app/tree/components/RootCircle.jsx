@@ -73,7 +73,7 @@ const RootCircle = ({ root, onVoteReceived, totalRootCount }) => {
                         {count}
                     </span>
                 </div>
-                <div className="text-[10px] font-medium leading-tight mb-[1px] text-center px-6">
+                <div className="text-[10px] font-medium leading-tight mb-[1px] text-center px-6 text-black">
                     {root.question}
                 </div>
             </div>
