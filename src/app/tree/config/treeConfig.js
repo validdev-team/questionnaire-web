@@ -109,7 +109,6 @@ export const ROOT_CONFIG = [
         animationFile: "A.webm"
     },
     {
-
         id: "root_B",
         zIndex: 11,
         x: 395,
