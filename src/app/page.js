@@ -75,7 +75,7 @@ export default function UserQuestionnaire() {
     setSubmitting(true);
 
     try {
-      const response = await fetch('/api/responses', {
+      const response = await fetch('/api/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
