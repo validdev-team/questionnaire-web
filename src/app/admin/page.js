@@ -2,14 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import {
-  collection,
-  getDocs,
   updateDoc,
   doc,
-  deleteDoc,
-  query,
-  orderBy,
-  setDoc
 } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { Edit } from 'lucide-react';
@@ -27,67 +21,26 @@ export default function AdminPanel() {
     fetchResponseCount();
   }, []);
 
-  const fetchQuestions = async () => {
-    try {
-      const questionsRef = collection(db, 'questions');
-      const q = query(questionsRef, orderBy('sortOrder'));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        await seedDefaultQuestions();
-        return fetchQuestions(); // fetch again after seeding
-      }
-
-      const questionList = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      setQuestions(questionList);
-    } catch (error) {
-      console.error('Error fetching questions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const seedDefaultQuestions = async () => {
-    const defaultQuestions = [
-      {
-        id: 'question1',
-        question: 'Question 1',
-        sortOrder: 1,
-        choices: Array.from({ length: 9 }, (_, i) => ({
-          text: `Option ${i + 1}`,
-          votes: 0,
-        })),
-      },
-      {
-        id: 'question2',
-        question: 'Question 2',
-        sortOrder: 2,
-        choices: Array.from({ length: 5 }, (_, i) => ({
-          text: `Choice ${i + 1}`,
-          votes: 0,
-        })),
-      },
-    ];
-
-    for (const q of defaultQuestions) {
-      await setDoc(doc(db, 'questions', q.id), {
-        question: q.question,
-        choices: q.choices,
-        sortOrder: q.sortOrder,
-      });
-    }
-  };
+const fetchQuestions = async () => {
+  setLoading(true);
+  try {
+    const res = await fetch('/api/admin/questions');
+    const data = await res.json();
+    setQuestions(data.questions);
+  } catch (err) {
+    console.error('Error fetching questions:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchResponseCount = async () => {
     try {
-      const snapshot = await getDocs(collection(db, 'responses'));
-      setResponseCount(snapshot.size);
-    } catch (error) {
-      console.error('Error fetching response count:', error);
+      const res = await fetch('/api/admin/count');
+      const data = await res.json();
+      setResponseCount(data.count);
+    } catch (err) {
+      console.error('Error fetching response count:', err);
     }
   };
 
@@ -96,35 +49,22 @@ export default function AdminPanel() {
 
     setResetting(true);
     try {
-      const responsesSnapshot = await getDocs(collection(db, 'responses'));
-      const deletePromises = responsesSnapshot.docs.map((docSnap) =>
-        deleteDoc(doc(db, 'responses', docSnap.id))
-      );
-      await Promise.all(deletePromises);
-
-      const questionsSnapshot = await getDocs(collection(db, 'questions'));
-      const resetPromises = questionsSnapshot.docs.map((docSnap) => {
-        const questionData = docSnap.data();
-        const resetChoices = questionData.choices.map((choice) => ({
-          ...choice,
-          votes: 0,
-        }));
-        return updateDoc(doc(db, 'questions', docSnap.id), {
-          choices: resetChoices
-        });
-      });
-
-      await Promise.all(resetPromises);
-
-      fetchQuestions();
-      fetchResponseCount();
+      const res = await fetch('/api/admin/reset', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        await fetchQuestions();
+        await fetchResponseCount();
+      } else {
+        alert('Failed to reset');
+      }
     } catch (error) {
       console.error('Error resetting data:', error);
-      alert('Failed to reset responses');
+      alert('Error resetting responses');
     } finally {
       setResetting(false);
     }
   };
+
 
   const handleEdit = (question) => {
     setEditingQuestion(question);
