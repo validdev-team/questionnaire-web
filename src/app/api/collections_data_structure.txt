@@ -75,24 +75,20 @@ RESPONSES
 RESULT
 {
   "totalResponses": 100,
-  "question1": {
-    "choice1": 10,
-    "choice2": 20,
-    "choice3": 30,
-    "choice4": 40,
-    "choice5": 50,
-    "choice6": 60,
-    "choice7": 70,
-    "choice8": 80,
-    "choice9": 90
-  },
-  "question2": {
-    "choice1": 10,
-    "choice2": 20,
-    "choice3": 30,
-    "choice4": 40,
-    "choice5": 50
-  }
+  "q1c1": 10,
+  "q1c2": 20,
+  "q1c3": 30,
+  "q1c4": 40,
+  "q1c5": 50,
+  "q1c6": 60,
+  "q1c7": 70,
+  "q1c8": 80,
+  "q1c9": 90,
+  "q2c1": 10,
+  "q2c2": 20,
+  "q2c3": 30,
+  "q2c4": 40,
+  "q2c5": 50
 }
 
 
