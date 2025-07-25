@@ -47,7 +47,7 @@ export default function ResultsPage() {
     try {
       setError(null);
       
-      const response = await fetch('/api/results');
+      const response = await fetch('/api/results_old');
       const data = await response.json();
       
       if (data.success) {
