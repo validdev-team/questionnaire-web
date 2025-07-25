@@ -5,12 +5,12 @@ import { doc, onSnapshot, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 
 export default function ResultsPage() {
-  const [results, setResults] = useState(null);           // result/live data
-  const [questionsMap, setQuestionsMap] = useState({});   // questionID => {question, choices}
+  const [results, setResults] = useState(null);
+  const [questionsMap, setQuestionsMap] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch question labels once
+    // Fetch questions once
     const fetchQuestions = async () => {
       const snapshot = await getDocs(collection(db, 'questions'));
       const map = {};
@@ -23,24 +23,27 @@ export default function ResultsPage() {
 
     fetchQuestions();
 
-    // Live vote listener
-    const unsubscribe = onSnapshot(doc(db, 'results', 'live'), (docSnap) => {
-      if (docSnap.exists()) {
-        setResults(docSnap.data());
-      } else {
-        console.warn('No results found.');
-        setResults(null);
+    // Live results listener
+    const unsubscribe = onSnapshot(
+      doc(db, 'results', 'live'),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setResults(docSnap.data());
+        } else {
+          setResults(null); // Will use fallback to zero below
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Error listening to results/live:', err);
+        setLoading(false);
       }
-      setLoading(false);
-    }, (err) => {
-      console.error('Error listening to results/live:', err);
-      setLoading(false);
-    });
+    );
 
     return () => unsubscribe();
   }, []);
 
-  if (loading || !results) {
+  if (loading || Object.keys(questionsMap).length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
@@ -48,27 +51,18 @@ export default function ResultsPage() {
     );
   }
 
-  const totalResponses = results.totalResponses || 0;
+  // Fallback results object with 0s
+  const effectiveResults = results || { totalResponses: 0 };
 
-  // Group votes by question
+  const totalResponses = effectiveResults.totalResponses || 0;
+
+  // Grouped results with fallback to zero votes
   const groupedResults = {};
-  Object.entries(results).forEach(([key, count]) => {
-    if (key === 'totalResponses') return;
-
-    const match = key.match(/(q\d+)c(\d+)/);
-    if (!match) return;
-
-    const [_, questionId, rawChoiceIndex] = match;
-    const choiceIndex = parseInt(rawChoiceIndex, 10) - 1;
-
-    if (choiceIndex < 0) return;
-
-    if (!groupedResults[questionId]) groupedResults[questionId] = [];
-
-    groupedResults[questionId].push({
-      choiceIndex,
-      voteCount: count
-    });
+  Object.entries(questionsMap).forEach(([questionId, questionData]) => {
+    groupedResults[questionId] = questionData.choices.map((_, i) => ({
+      choiceIndex: i,
+      voteCount: effectiveResults[`${questionId}c${i + 1}`] || 0,
+    }));
   });
 
   return (
@@ -99,9 +93,9 @@ export default function ResultsPage() {
                     </div>
 
                     <div className="space-y-3">
-                      {choices.sort((a, b) => a.choiceIndex - b.choiceIndex).map(({ choiceIndex, voteCount }) => {
-                        const percentage = totalVotes > 0 ? (voteCount / totalVotes * 100) : 0;
-                        const choiceText = questionData?.choices?.[choiceIndex]?.text || `Choice ${choiceIndex}`;
+                      {choices.map(({ choiceIndex, voteCount }) => {
+                        const percentage = totalVotes > 0 ? (voteCount / totalVotes) * 100 : 0;
+                        const choiceText = questionData?.choices?.[choiceIndex]?.text || `Choice ${choiceIndex + 1}`;
 
                         return (
                           <div key={choiceIndex} className="flex items-center">

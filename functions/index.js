@@ -11,6 +11,7 @@ const COLLECTIONS = [
 ];
 
 let lastRun = 0;
+let finalTimer = null;
 
 async function countVotes() {
   const result = {};
@@ -28,9 +29,22 @@ async function countVotes() {
 
 exports.aggregateVotes = onDocumentCreated("responses/{id}", async () => {
   const now = Date.now();
-  if (now - lastRun < 1000) return;
-  lastRun = now;
 
-  const voteData = await countVotes();
-  await db.collection('results').doc('live').set(voteData);
+  // If too soon since last run, skip immediate update
+  if (now - lastRun >= 1000) {
+    lastRun = now;
+
+    const voteData = await countVotes();
+    await db.collection('results').doc('live').set(voteData);
+  }
+
+  // Always reset a delayed final aggregation
+  if (finalTimer) clearTimeout(finalTimer);
+
+  // Run one last aggregation after 1 second of silence
+  finalTimer = setTimeout(async () => {
+    const finalVoteData = await countVotes();
+    await db.collection('results').doc('live').set(finalVoteData);
+    lastRun = Date.now();
+  }, 1000);
 });
