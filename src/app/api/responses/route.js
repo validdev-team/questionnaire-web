@@ -1,12 +1,5 @@
-// app/api/responses/route.js
 import { NextResponse } from 'next/server';
-import {
-    collection,
-    addDoc,
-    doc,
-    updateDoc,
-    getDoc
-} from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
 
 export async function POST(request) {
@@ -20,49 +13,38 @@ export async function POST(request) {
                 { status: 400 }
             );
         }
+
         if (!timestamp || isNaN(Date.parse(timestamp))) {
             return NextResponse.json(
                 { error: 'Invalid timestamp format' },
                 { status: 400 }
             );
         }
-        
-        // Save response including the client timestamp
+
+        // Save full response to 'responses' collection
         await addDoc(collection(db, 'responses'), {
             timestamp,
             answers
         });
 
-        // Update vote counts
-        for (const [questionId, selectedChoices] of Object.entries(answers)) {
-            if (!Array.isArray(selectedChoices)) continue;
+        // For each selected choice, add a doc to qXcY
+        for (const [questionId, selectedIndices] of Object.entries(answers)) {
+            if (!Array.isArray(selectedIndices)) continue;
 
-            const questionRef = doc(db, 'questions', questionId);
-            const questionSnap = await getDoc(questionRef);
+            // Convert "question1" → "q1", "question2" → "q2", etc.
+            const questionNumber = questionId.replace('question', 'q');
 
-            if (!questionSnap.exists()) continue;
-
-            const questionData = questionSnap.data();
-
-            if (Array.isArray(questionData.choices)) {
-                const updatedChoices = [...questionData.choices];
-
-                // Increment votes for each choice
-                selectedChoices.forEach((choiceIndex) => {
-                    if (choiceIndex >= 0 && choiceIndex < updatedChoices.length) {
-                        updatedChoices[choiceIndex].votes =
-                            (updatedChoices[choiceIndex].votes || 0) + 1;
-                    }
-                });
-
-                await updateDoc(questionRef, {
-                    choices: updatedChoices
+            // Add a doc to qXcY
+            for (const index of selectedIndices) {
+                const choiceId = `${questionNumber}c${index + 1}`; // index is 0-based
+                await addDoc(collection(db, choiceId), {
+                    timestamp
                 });
             }
         }
 
         return NextResponse.json({
-            message: 'Response submitted successfully'
+            message: 'Response submitted successfully',
         });
 
     } catch (error) {
