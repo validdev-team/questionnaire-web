@@ -10,8 +10,7 @@ const COLLECTIONS = [
   'q2c1', 'q2c2', 'q2c3', 'q2c4', 'q2c5',
 ];
 
-let lastRun = 0;
-let finalTimer = null;
+const CONTROL_DOC = db.collection('results').doc('aggregateControl');
 
 async function countVotes() {
   const result = {};
@@ -28,23 +27,37 @@ async function countVotes() {
 }
 
 exports.aggregateVotes = onDocumentCreated("responses/{id}", async () => {
+  const controlSnap = await CONTROL_DOC.get();
+  const control = controlSnap.exists ? controlSnap.data() : {};
   const now = Date.now();
+  const lastRun = control.lastRun || 0;
 
-  // If too soon since last run, skip immediate update
+  // Immediate aggregation if more than 1s passed
   if (now - lastRun >= 1000) {
-    lastRun = now;
-
     const voteData = await countVotes();
     await db.collection('results').doc('live').set(voteData);
+
+    await CONTROL_DOC.set({
+      lastRun: now,
+      debounceScheduled: false
+    }, { merge: true });
+
+    return;
   }
 
-  // Always reset a delayed final aggregation
-  if (finalTimer) clearTimeout(finalTimer);
+  // Otherwise: schedule one final aggregation 1 second later
+  if (!control.debounceScheduled) {
+    // Set debounceScheduled = true
+    await CONTROL_DOC.set({ debounceScheduled: true }, { merge: true });
 
-  // Run one last aggregation after 1 second of silence
-  finalTimer = setTimeout(async () => {
-    const finalVoteData = await countVotes();
-    await db.collection('results').doc('live').set(finalVoteData);
-    lastRun = Date.now();
-  }, 1000);
+    setTimeout(async () => {
+      const voteData = await countVotes();
+      await db.collection('results').doc('live').set(voteData);
+
+      await CONTROL_DOC.set({
+        lastRun: Date.now(),
+        debounceScheduled: false
+      }, { merge: true });
+    }, 1000);
+  }
 });
