@@ -1,23 +1,20 @@
 config:
   target: "http://localhost:3000"
   phases:
-    - duration: 3
-      arrivalRate: 3
-  processor: "./artillery-processor.js"  # external JS file
-  defaults:
-    headers:
-      Content-Type: "application/json"
+    - duration: 10
+      arrivalRate: 50
+  processor: "./artillery-processor.js"
 
 scenarios:
-  - flow:
+  - name: "Submit responses"
+    flow:
       - get:
           url: "/api/questions"
           capture:
             - json: "$"
               as: "questionsData"
-      - function: "buildAnswers"
+      - function: "generatePayload"
       - post:
-          url: "/api/responses"
+          url: "/api/submit"
           json:
-            answers: "{{ answers }}"
-            timestamp: "{{ timestamp }}"
+            "{{ payload }}"

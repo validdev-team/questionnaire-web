@@ -1,3 +1,4 @@
+// app/api/submit/route.js
 import { NextResponse } from 'next/server';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase';
@@ -30,13 +31,10 @@ export async function POST(request) {
         // For each selected choice, add a doc to qXcY
         for (const [questionId, selectedIndices] of Object.entries(answers)) {
             if (!Array.isArray(selectedIndices)) continue;
-
-            // Convert "question1" → "q1", "question2" → "q2", etc.
-            const questionNumber = questionId.replace('question', 'q');
-
+            
             // Add a doc to qXcY
             for (const index of selectedIndices) {
-                const choiceId = `${questionNumber}c${index + 1}`; // index is 0-based
+                const choiceId = `${questionId}c${index + 1}`; // index is 0-based
                 await addDoc(collection(db, choiceId), {
                     timestamp
                 });
