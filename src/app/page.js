@@ -81,10 +81,11 @@ export default function UserQuestionnaire() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          timestamp: new Date().toISOString(),
           answers
         }),
       });
-
+      console.log("response: ", answers)
       if (!response.ok) {
         throw new Error('Failed to submit response');
       }

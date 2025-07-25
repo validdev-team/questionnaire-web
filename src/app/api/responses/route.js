@@ -11,7 +11,7 @@ import { db } from '../../../../lib/firebase';
 
 export async function POST(request) {
     try {
-        const { answers } = await request.json();
+        const { answers, timestamp } = await request.json();
 
         // Validate request data
         if (!answers || typeof answers !== 'object') {
@@ -20,9 +20,16 @@ export async function POST(request) {
                 { status: 400 }
             );
         }
-
-        // Save response
+        if (!timestamp || isNaN(Date.parse(timestamp))) {
+            return NextResponse.json(
+                { error: 'Invalid timestamp format' },
+                { status: 400 }
+            );
+        }
+        
+        // Save response including the client timestamp
         await addDoc(collection(db, 'responses'), {
+            timestamp,
             answers
         });
 
