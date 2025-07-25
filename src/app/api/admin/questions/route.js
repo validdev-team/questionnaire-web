@@ -22,13 +22,13 @@ export async function GET() {
 async function seedDefaultQuestions() {
     const defaultQuestions = [
         {
-            id: 'question1',
+            id: 'q1',
             question: 'Question 1',
             sortOrder: 1,
             choices: Array.from({ length: 9 }, (_, i) => ({ text: `Option ${i + 1}` })),
         },
         {
-            id: 'question2',
+            id: 'q2',
             question: 'Question 2',
             sortOrder: 2,
             choices: Array.from({ length: 5 }, (_, i) => ({ text: `Choice ${i + 1}` })),

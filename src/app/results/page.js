@@ -1,69 +1,46 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 
 export default function ResultsPage() {
-  const [questions, setQuestions] = useState([]);
-  const [totalResponses, setTotalResponses] = useState(0); // State for total responses count
+  const [results, setResults] = useState(null);           // result/live data
+  const [questionsMap, setQuestionsMap] = useState({});   // questionID => {question, choices}
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Single listener for both questions and responses count
-    const unsubscribe = onSnapshot(collection(db, 'questions'), (snapshot) => {
-      const questionList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      // Update the state with the new questions list
-      setQuestions(questionList);
-      
-      // Fetch the number of responses by subscribing to the 'responses' collection
-      const unsubscribeResponses = onSnapshot(collection(db, 'responses'), (responseSnapshot) => {
-        setTotalResponses(responseSnapshot.size); // Update total responses count
-      }, (error) => {
-        console.error('Error fetching responses count:', error);
+    // Fetch question labels once
+    const fetchQuestions = async () => {
+      const snapshot = await getDocs(collection(db, 'questions'));
+      const map = {};
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        map[doc.id] = { id: doc.id, ...data };
       });
+      setQuestionsMap(map);
+    };
 
+    fetchQuestions();
+
+    // Live vote listener
+    const unsubscribe = onSnapshot(doc(db, 'results', 'live'), (docSnap) => {
+      if (docSnap.exists()) {
+        setResults(docSnap.data());
+      } else {
+        console.warn('No results found.');
+        setResults(null);
+      }
       setLoading(false);
-
-      // Clean up the responses listener when the component unmounts
-      return () => {
-        unsubscribeResponses(); // Unsubscribe from responses collection listener
-      };
-
-    }, (error) => {
-      console.error('Error fetching questions:', error);
+    }, (err) => {
+      console.error('Error listening to results/live:', err);
       setLoading(false);
     });
 
-    // Clean up questions listener on unmount
     return () => unsubscribe();
   }, []);
 
-  const fetchResults = async () => {
-    try {
-      setError(null);
-      
-      const response = await fetch('/api/results_old');
-      const data = await response.json();
-      
-      if (data.success) {
-        setQuestions(data.data);
-      } else {
-        setError(data.error || 'Failed to fetch results');
-      }
-    } catch (error) {
-      console.error('Error fetching results:', error);
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (loading || !results) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
@@ -71,47 +48,70 @@ export default function ResultsPage() {
     );
   }
 
+  const totalResponses = results.totalResponses || 0;
+
+  // Group votes by question
+  const groupedResults = {};
+  Object.entries(results).forEach(([key, count]) => {
+    if (key === 'totalResponses') return;
+
+    const match = key.match(/(q\d+)c(\d+)/);
+    if (!match) return;
+
+    const [_, questionId, rawChoiceIndex] = match;
+    const choiceIndex = parseInt(rawChoiceIndex, 10) - 1;
+
+    if (choiceIndex < 0) return;
+
+    if (!groupedResults[questionId]) groupedResults[questionId] = [];
+
+    groupedResults[questionId].push({
+      choiceIndex,
+      voteCount: count
+    });
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Survey Results</h2>
-          
-          {/* Display Total Responses */}
           <div className="text-sm text-gray-500 mb-6">
             Total Responses: {totalResponses}
           </div>
-          
-          {questions.length === 0 ? (
-            <p className="text-gray-600 text-center py-8">No survey data available.</p>
+
+          {Object.keys(groupedResults).length === 0 ? (
+            <p className="text-gray-600 text-center py-8">No vote data available.</p>
           ) : (
             <div className="space-y-8">
-              {questions.map((question) => {
-                const totalVotes = question.choices?.reduce((sum, choice) => sum + (choice.votes || 0), 0) || 0;
-                
+              {Object.entries(groupedResults).map(([questionId, choices]) => {
+                const totalVotes = choices.reduce((sum, c) => sum + c.voteCount, 0);
+                const questionData = questionsMap[questionId];
+
                 return (
-                  <div key={question.id} className="border border-gray-200 rounded-lg p-6">
+                  <div key={questionId} className="border border-gray-200 rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      {question.question}
+                      {questionData?.question || questionId}
                     </h3>
-                    
+
                     <div className="mb-4 text-sm text-gray-600">
                       Total Votes: {totalVotes}
                     </div>
-                    
+
                     <div className="space-y-3">
-                      {question.choices?.map((choice, index) => {
-                        const percentage = totalVotes > 0 ? ((choice.votes || 0) / totalVotes * 100) : 0;
-                        
+                      {choices.sort((a, b) => a.choiceIndex - b.choiceIndex).map(({ choiceIndex, voteCount }) => {
+                        const percentage = totalVotes > 0 ? (voteCount / totalVotes * 100) : 0;
+                        const choiceText = questionData?.choices?.[choiceIndex]?.text || `Choice ${choiceIndex}`;
+
                         return (
-                          <div key={index} className="flex items-center">
+                          <div key={choiceIndex} className="flex items-center">
                             <div className="flex-1">
                               <div className="flex justify-between items-center mb-1">
                                 <span className="text-sm font-medium text-gray-700">
-                                  {choice.text}
+                                  {choiceText}
                                 </span>
                                 <span className="text-sm text-gray-500">
-                                  {choice.votes || 0} votes ({percentage.toFixed(1)}%)
+                                  {voteCount} votes ({percentage.toFixed(1)}%)
                                 </span>
                               </div>
                               <div className="w-full bg-gray-200 rounded-full h-2">
@@ -130,15 +130,6 @@ export default function ResultsPage() {
               })}
             </div>
           )}
-        </div>
-        
-        <div className="text-center">
-          <button
-            onClick={fetchResults}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Refresh Results
-          </button>
         </div>
       </div>
     </div>
