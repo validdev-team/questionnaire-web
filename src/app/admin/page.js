@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { Edit } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AdminPanel() {
   const [questions, setQuestions] = useState([]);
@@ -97,15 +98,26 @@ const fetchQuestions = async () => {
                 (Total responses: {responseCount})
               </span>
             </h2>
-            <button
-              onClick={resetAllResponses}
-              disabled={resetting}
-              className={`px-4 py-2 rounded-lg ${
-                resetting ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'
-              } text-white`}
-            >
-              {resetting ? 'Resetting...' : 'Reset Responses'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={resetAllResponses}
+                disabled={resetting}
+                className={`px-4 py-2 rounded-lg ${
+                  resetting ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'
+                } text-white`}
+              >
+                {resetting ? 'Resetting...' : 'Reset Responses'}
+              </button>
+              <Link
+                href="/tree"
+                className="flex items-center px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white">
+                <button>
+                  <svg width="20" height="20" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24.57 1.56H21.58V0.26C21.58 0.117 21.463 0 21.32 0H4.68C4.537 0 4.42 0.117 4.42 0.26V1.56H1.43C1.05074 1.56 0.687014 1.71066 0.418837 1.97884C0.15066 2.24701 0 2.61074 0 2.99V7.8C0 10.4552 1.95 12.662 4.4915 13.065C4.992 16.8415 8.0275 19.8185 11.83 20.2312V23.6502H5.46C4.88475 23.6502 4.42 24.115 4.42 24.6903V25.74C4.42 25.883 4.537 26 4.68 26H21.32C21.463 26 21.58 25.883 21.58 25.74V24.6903C21.58 24.115 21.1152 23.6502 20.54 23.6502H14.17V20.2312C17.9725 19.8185 21.008 16.8415 21.5085 13.065C24.05 12.662 26 10.4552 26 7.8V2.99C26 2.61074 25.8493 2.24701 25.5812 1.97884C25.313 1.71066 24.9493 1.56 24.57 1.56ZM4.42 10.647C3.21425 10.2603 2.34 9.12925 2.34 7.8V3.9H4.42V10.647ZM23.66 7.8C23.66 9.1325 22.7857 10.2635 21.58 10.647V3.9H23.66V7.8Z" fill="white"/>
+                  </svg>
+                </button>
+              </Link>
+            </div>
           </div>
 
           {questions.length === 0 ? (
@@ -119,8 +131,8 @@ const fetchQuestions = async () => {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Question</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. of Options</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Edit</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. of Responses</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -132,7 +144,7 @@ const fetchQuestions = async () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
                           onClick={() => handleEdit(question)}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="bg-gray-200 hover:bg-gray-300 text-gray-600 hover:text-gray-900 p-2 rounded"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
@@ -219,14 +231,14 @@ function QuestionForm({ question, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Edit Question</h3>
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="px-6 py-4">
+          <h3 className="text-xl font-bold text-gray-900">Edit Question</h3>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="pb-6 px-6">
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xl font-bold text-gray-900 mb-2">
               Question
             </label>
             <input
@@ -239,8 +251,8 @@ function QuestionForm({ question, onClose }) {
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Answer Choices
+            <label className="block text-xl font-bold text-gray-900 mb-2">
+              Options
             </label>
             {choices.map((choice, index) => (
               <div key={index} className="flex gap-2 mb-2">
@@ -260,14 +272,14 @@ function QuestionForm({ question, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-950 hover:bg-blue-700 rounded-md disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Update'}
             </button>
