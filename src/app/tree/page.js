@@ -1,5 +1,8 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { doc, onSnapshot} from 'firebase/firestore';
+import { db } from '../../../lib/firebase';
+
 import TreeContainer from './components/TreeContainer';
 import TreeStyles from './components/TreeStyles';
 import { LEAF_CONFIG, ROOT_CONFIG } from './config/treeConfig';
@@ -8,12 +11,29 @@ import { LEAF_CONFIG, ROOT_CONFIG } from './config/treeConfig';
 // MAIN TREE PAGE COMPONENT
 // ============================================================================
 const TreePage = () => {
-    const [totalVotes, setTotalVotes] = useState(() => {
-        // Calculate initial total from all leaf and root initial counts
-        const leafTotal = LEAF_CONFIG.reduce((sum, leaf) => sum + leaf.initialCount, 0);
-        const rootTotal = ROOT_CONFIG.reduce((sum, root) => sum + root.initialCount, 0);
-        return leafTotal + rootTotal;
-    });
+    const [results, setResults] = useState(null);
+
+    useEffect(() => {
+        // Establish live count connection once
+        const unsubscribe = onSnapshot(
+            doc(db, 'results', 'live'),
+            (docSnap) => {
+                if (docSnap.exists()) {
+                    setResults(docSnap.data());
+                } else {
+                    setResults(null);
+                }
+                setLoading(false);
+            }, (err) => {
+                console.error('Error listening to results/live:', err);
+                setLoading(false);
+            }
+        );
+    }, []);
+
+    // Fallback results object with 0s
+    const effectiveResults = results || { totalResponses: 0 };
+    const totalResponses = effectiveResults.totalResponses || 0;
 
     // Track total leaf count separately from total votes
     const [totalLeafCount, setTotalLeafCount] = useState(() => {
@@ -27,8 +47,6 @@ const TreePage = () => {
 
     // Handle vote received from tree container
     const handleVoteReceived = (elementId, newCount, animationFile) => {
-        setTotalVotes(prev => prev + 1);
-
         // If this is a leaf vote, update the total leaf count
         const isLeafVote = LEAF_CONFIG.some(leaf => leaf.id === elementId);
         const isRootVote = ROOT_CONFIG.some(root => root.id === elementId);
@@ -76,7 +94,7 @@ const TreePage = () => {
             <TreeContainer 
                 className=""
                 onVoteReceived={handleVoteReceived}
-                totalVotes={totalVotes}
+                totalVotes={totalResponses}
                 totalLeafCount={totalLeafCount}
                 totalRootCount={totalRootCount}
             />
