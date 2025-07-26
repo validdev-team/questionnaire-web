@@ -13,6 +13,7 @@ import { LEAF_CONFIG, ROOT_CONFIG } from './config/treeConfig';
 const TreePage = () => {
     const [results, setResults] = useState(null);
     const [previousResults, setPreviousResults] = useState(null);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
 
     useEffect(() => {
         // Listen to the entire results collection for any changes
@@ -27,13 +28,27 @@ const TreePage = () => {
                     if (liveDocSnap.exists()) {
                         const newData = liveDocSnap.data();
                         
-                        // Store previous results before updating
-                        setPreviousResults(results);
+                        // Only store previous results after the initial load
+                        if (!isInitialLoad) {
+                            setPreviousResults(results);
+                        }
+                        
                         setResults(newData);
+                        
+                        // Mark initial load as complete after first data fetch
+                        if (isInitialLoad) {
+                            setIsInitialLoad(false);
+                        }
                     } else {
                         console.log('No live document found');
-                        setPreviousResults(results);
+                        if (!isInitialLoad) {
+                            setPreviousResults(results);
+                        }
                         setResults(null);
+                        
+                        if (isInitialLoad) {
+                            setIsInitialLoad(false);
+                        }
                     }
                 } catch (error) {
                     console.error('Error fetching live document:', error);
@@ -45,7 +60,7 @@ const TreePage = () => {
         );
 
         return () => unsubscribe();
-    }, [results]);
+    }, [results, isInitialLoad]);
 
     // Fallback results object with 0s
     const effectiveResults = results || { 
@@ -81,8 +96,8 @@ const TreePage = () => {
     const leafDataWithCounts = LEAF_CONFIG.map((leaf, index) => {
         const apiKey = `q1c${index + 1}`;
         const currentCount = effectiveResults[apiKey] || 0;
-        const previousCount = previousResults?.[apiKey] || 0;
-        const hasNewVote = currentCount > previousCount;
+        const previousCount = (!isInitialLoad && previousResults) ? (previousResults[apiKey] || 0) : currentCount;
+        const hasNewVote = !isInitialLoad && currentCount > previousCount;
         
         return {
             ...leaf,
@@ -95,8 +110,8 @@ const TreePage = () => {
     const rootDataWithCounts = ROOT_CONFIG.map((root, index) => {
         const apiKey = `q2c${index + 1}`;
         const currentCount = effectiveResults[apiKey] || 0;
-        const previousCount = previousResults?.[apiKey] || 0;
-        const hasNewVote = currentCount > previousCount;
+        const previousCount = (!isInitialLoad && previousResults) ? (previousResults[apiKey] || 0) : currentCount;
+        const hasNewVote = !isInitialLoad && currentCount > previousCount;
         
         return {
             ...root,
@@ -145,6 +160,7 @@ const TreePage = () => {
                 totalRootCount={totalRootCount}
                 leafData={leafDataWithCounts}
                 rootData={rootDataWithCounts}
+                isInitialLoad={isInitialLoad}
             />
         </div>
     );

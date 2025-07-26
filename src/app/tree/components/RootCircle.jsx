@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 
-const RootCircle = ({ root, totalRootCount, onVoteReceived }) => {
+const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => {
     const [isBouncing, setIsBouncing] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
     const animationRef = useRef(null);
@@ -12,12 +12,18 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived }) => {
 
     // Check for new votes and trigger animations
     useEffect(() => {
+        // Don't trigger animations on initial load or if no previous data
+        if (isInitialLoad || previousCountRef.current === 0) {
+            previousCountRef.current = count;
+            return;
+        }
+
         if (count > previousCountRef.current) {
             triggerBounce();
             triggerAnimation();
             previousCountRef.current = count;
         }
-    }, [count]);
+    }, [count, isInitialLoad]);
 
     // Calculate root size based on individual root count relative to total
     let rootScale = Math.min(1 + ((count / (totalRootCount || 1)) * 1.5), 1.2);

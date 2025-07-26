@@ -4,20 +4,20 @@ import { v4 as uuidv4 } from 'uuid';
 import LeafSegment from './LeafSegment';
 import RootCircle from './RootCircle';
 
-const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, rootData }) => {
+const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, rootData, isInitialLoad }) => {
     const [activeAnimations, setActiveAnimations] = useState([]);
     const previousLeafDataRef = useRef({});
     const previousRootDataRef = useRef({});
 
     // Check for new votes and trigger animations
     useEffect(() => {
-        if (!leafData || !rootData) return;
+        if (!leafData || !rootData || isInitialLoad) return;
 
         // Check leaves for new votes
         leafData.forEach(leaf => {
             const previousCount = previousLeafDataRef.current[leaf.id]?.currentCount || 0;
-            if (leaf.currentCount > previousCount) {
-                // Trigger animation for this leaf
+            if (leaf.currentCount > previousCount && previousCount > 0) {
+                // Only trigger animation if there was a previous count (not initial load)
                 triggerTreeAnimation(leaf.animationFile);
             }
         });
@@ -25,8 +25,8 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         // Check roots for new votes
         rootData.forEach(root => {
             const previousCount = previousRootDataRef.current[root.id]?.currentCount || 0;
-            if (root.currentCount > previousCount) {
-                // Trigger animation for this root
+            if (root.currentCount > previousCount && previousCount > 0) {
+                // Only trigger animation if there was a previous count (not initial load)
                 triggerTreeAnimation(root.animationFile);
             }
         });
@@ -42,7 +42,7 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
             return acc;
         }, {});
 
-    }, [leafData, rootData]);
+    }, [leafData, rootData, isInitialLoad]);
 
     // Trigger animation on tree trunk
     const triggerTreeAnimation = (animationFile) => {
@@ -129,6 +129,7 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                         leaf={leaf}
                         totalLeafCount={totalLeafCount}
                         onVoteReceived={() => {}} // Placeholder since we're using API data
+                        isInitialLoad={isInitialLoad}
                     />
                 </div>
             ))}
@@ -140,6 +141,7 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                         root={root}
                         totalRootCount={totalRootCount}
                         onVoteReceived={() => {}} // Placeholder since we're using API data
+                        isInitialLoad={isInitialLoad}
                     />
                 </div>
             ))}

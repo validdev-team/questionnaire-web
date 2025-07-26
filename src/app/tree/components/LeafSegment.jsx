@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 
-const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived }) => {
+const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) => {
     const [shouldBounce, setShouldBounce] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
     const animationRef = useRef(null);
@@ -12,12 +12,18 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived }) => {
 
     // Check for new votes and trigger animations
     useEffect(() => {
+        // Don't trigger animations on initial load or if no previous data
+        if (isInitialLoad || previousCountRef.current === 0) {
+            previousCountRef.current = count;
+            return;
+        }
+
         if (count > previousCountRef.current) {
             triggerBounce();
             triggerAnimation();
             previousCountRef.current = count;
         }
-    }, [count]);
+    }, [count, isInitialLoad]);
 
     // Calculate leaf size based on TOTAL leaf count across all leaves
     let leafScale = Math.min(2.6 + ((count / (totalLeafCount || 1)) * 1.5), 3.6);
