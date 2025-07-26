@@ -1,5 +1,8 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { db } from '../../../lib/firebase';
+
 import TreeContainer from './components/TreeContainer';
 import TreeStyles from './components/TreeStyles';
 import { LEAF_CONFIG, ROOT_CONFIG } from './config/treeConfig';
@@ -8,37 +11,179 @@ import { LEAF_CONFIG, ROOT_CONFIG } from './config/treeConfig';
 // MAIN TREE PAGE COMPONENT
 // ============================================================================
 const TreePage = () => {
-    const [totalVotes, setTotalVotes] = useState(() => {
-        // Calculate initial total from all leaf and root initial counts
-        const leafTotal = LEAF_CONFIG.reduce((sum, leaf) => sum + leaf.initialCount, 0);
-        const rootTotal = ROOT_CONFIG.reduce((sum, root) => sum + root.initialCount, 0);
-        return leafTotal + rootTotal;
-    });
+    const [results, setResults] = useState(null);
+    const [previousResults, setPreviousResults] = useState(null);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [questions, setQuestions] = useState(null);
+    const [questionsLoaded, setQuestionsLoaded] = useState(false);
 
-    // Track total leaf count separately from total votes
-    const [totalLeafCount, setTotalLeafCount] = useState(() => {
-        return LEAF_CONFIG.reduce((sum, leaf) => sum + leaf.initialCount, 0);
-    });
+    // Fetch questions once on component mount
+    useEffect(() => {
+        const fetchQuestions = async () => {
+            try {
+                const response = await fetch('/api/questions');
+                const questionsData = await response.json();
+                setQuestions(questionsData);
+                setQuestionsLoaded(true);
+            } catch (error) {
+                console.error('Error fetching questions:', error);
+                setQuestionsLoaded(true); // Still set to true to prevent infinite loading
+            }
+        };
 
-    // Track total root count separately from total votes
-    const [totalRootCount, setTotalRootCount] = useState(() => {
-        return ROOT_CONFIG.reduce((sum, root) => sum + root.initialCount, 0);
-    });
+        fetchQuestions();
+    }, []);
 
-    // Handle vote received from tree container
-    const handleVoteReceived = (elementId, newCount, animationFile) => {
-        setTotalVotes(prev => prev + 1);
+    useEffect(() => {
+        // Listen to the entire results collection for any changes
+        const unsubscribe = onSnapshot(
+            collection(db, 'results'),
+            async (collectionSnapshot) => {
+                try {
+                    // When results collection changes, fetch the specific live document
+                    const liveDocRef = doc(db, 'results', 'live');
+                    const liveDocSnap = await getDoc(liveDocRef);
+                    
+                    if (liveDocSnap.exists()) {
+                        const newData = liveDocSnap.data();
+                        
+                        // Only store previous results after the initial load
+                        if (!isInitialLoad) {
+                            setPreviousResults(results);
+                        }
+                        
+                        setResults(newData);
+                        
+                        // Mark initial load as complete after first data fetch
+                        if (isInitialLoad) {
+                            setIsInitialLoad(false);
+                        }
+                    } else {
+                        console.log('No live document found');
+                        if (!isInitialLoad) {
+                            setPreviousResults(results);
+                        }
+                        setResults(null);
+                        
+                        if (isInitialLoad) {
+                            setIsInitialLoad(false);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching live document:', error);
+                }
+            },
+            (error) => {
+                console.error('Error listening to results collection:', error);
+            }
+        );
 
-        // If this is a leaf vote, update the total leaf count
-        const isLeafVote = LEAF_CONFIG.some(leaf => leaf.id === elementId);
-        const isRootVote = ROOT_CONFIG.some(root => root.id === elementId);
+        return () => unsubscribe();
+    }, [results, isInitialLoad]);
+
+    // Don't render until questions are loaded
+    if (!questionsLoaded) {
+        return (
+            <div className="w-full h-screen flex items-center justify-center bg-gradient-to-b from-sky-200 via-sky-250 to-sky-300">
+                <div className="text-lg font-semibold text-gray-700">Loading...</div>
+            </div>
+        );
+    }
+
+    // Create merged leaf configuration with API question text
+    const getMergedLeafConfig = () => {
+        if (!questions) return LEAF_CONFIG;
         
-        if (isLeafVote) {
-            setTotalLeafCount(prev => prev + 1);
-        } else if (isRootVote) {
-            setTotalRootCount(prev => prev + 1);
-        }
+        const q1 = questions.find(q => q.id === 'q1');
+        if (!q1) return LEAF_CONFIG;
+
+        return LEAF_CONFIG.map((leaf, index) => {
+            const choice = q1.choices[index];
+            return {
+                ...leaf,
+                question: choice ? choice.text : leaf.option, // Use API text or fallback to config
+                option: leaf.option // Keep original as backup
+            };
+        });
     };
+
+    // Create merged root configuration with API question text
+    const getMergedRootConfig = () => {
+        if (!questions) return ROOT_CONFIG;
+        
+        const q2 = questions.find(q => q.id === 'q2');
+        if (!q2) return ROOT_CONFIG;
+
+        return ROOT_CONFIG.map((root, index) => {
+            const choice = q2.choices[index];
+            return {
+                ...root,
+                question: choice ? choice.text : root.option, // Use API text or fallback to config
+                option: root.option // Keep original as backup
+            };
+        });
+    };
+
+    const mergedLeafConfig = getMergedLeafConfig();
+    const mergedRootConfig = getMergedRootConfig();
+
+    // Fallback results object with 0s
+    const effectiveResults = results || { 
+        totalResponses: 0,
+        q1c1: 0, q1c2: 0, q1c3: 0, q1c4: 0, q1c5: 0,
+        q1c6: 0, q1c7: 0, q1c8: 0, q1c9: 0,
+        q2c1: 0, q2c2: 0, q2c3: 0, q2c4: 0, q2c5: 0
+    };
+    
+    const totalResponses = effectiveResults.totalResponses || 0;
+
+    // Calculate total leaf count from API data
+    const totalLeafCount =
+        (effectiveResults.q1c1 || 0) +
+        (effectiveResults.q1c2 || 0) +
+        (effectiveResults.q1c3 || 0) +
+        (effectiveResults.q1c4 || 0) +
+        (effectiveResults.q1c5 || 0) +
+        (effectiveResults.q1c6 || 0) +
+        (effectiveResults.q1c7 || 0) +
+        (effectiveResults.q1c8 || 0) +
+        (effectiveResults.q1c9 || 0);
+
+    // Calculate total root count from API data
+    const totalRootCount =
+        (effectiveResults.q2c1 || 0) +
+        (effectiveResults.q2c2 || 0) +
+        (effectiveResults.q2c3 || 0) +
+        (effectiveResults.q2c4 || 0) +
+        (effectiveResults.q2c5 || 0);
+
+    // Create leaf data with API counts
+    const leafDataWithCounts = mergedLeafConfig.map((leaf, index) => {
+        const apiKey = `q1c${index + 1}`;
+        const currentCount = effectiveResults[apiKey] || 0;
+        const previousCount = (!isInitialLoad && previousResults) ? (previousResults[apiKey] || 0) : currentCount;
+        const hasNewVote = !isInitialLoad && currentCount > previousCount;
+        
+        return {
+            ...leaf,
+            currentCount,
+            hasNewVote
+        };
+    });
+
+    // Create root data with API counts
+    const rootDataWithCounts = mergedRootConfig.map((root, index) => {
+        const apiKey = `q2c${index + 1}`;
+        const currentCount = effectiveResults[apiKey] || 0;
+        const previousCount = (!isInitialLoad && previousResults) ? (previousResults[apiKey] || 0) : currentCount;
+        const hasNewVote = !isInitialLoad && currentCount > previousCount;
+        
+        return {
+            ...root,
+            currentCount,
+            hasNewVote
+        };
+    });
 
     return (
         <div className="w-full h-screen relative overflow-hidden bg-gradient-to-b from-sky-200 via-sky-250 to-sky-300">
@@ -75,10 +220,12 @@ const TreePage = () => {
 
             <TreeContainer 
                 className=""
-                onVoteReceived={handleVoteReceived}
-                totalVotes={totalVotes}
+                totalVotes={totalResponses}
                 totalLeafCount={totalLeafCount}
                 totalRootCount={totalRootCount}
+                leafData={leafDataWithCounts}
+                rootData={rootDataWithCounts}
+                isInitialLoad={isInitialLoad}
             />
         </div>
     );

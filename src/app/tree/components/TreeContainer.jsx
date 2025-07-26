@@ -1,12 +1,48 @@
 "use client"
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import LeafSegment from './LeafSegment';
 import RootCircle from './RootCircle';
-import { LEAF_CONFIG, ROOT_CONFIG } from '../config/treeConfig';
 
-const TreeContainer = ({ onVoteReceived, totalVotes, totalLeafCount, totalRootCount }) => {
+const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, rootData, isInitialLoad }) => {
     const [activeAnimations, setActiveAnimations] = useState([]);
+    const previousLeafDataRef = useRef({});
+    const previousRootDataRef = useRef({});
+
+    // Check for new votes and trigger animations
+    useEffect(() => {
+        if (!leafData || !rootData || isInitialLoad) return;
+
+        // Check leaves for new votes
+        leafData.forEach(leaf => {
+            const previousCount = previousLeafDataRef.current[leaf.id]?.currentCount || 0;
+            if (leaf.currentCount > previousCount && previousCount > 0) {
+                // Only trigger animation if there was a previous count (not initial load)
+                triggerTreeAnimation(leaf.animationFile);
+            }
+        });
+
+        // Check roots for new votes
+        rootData.forEach(root => {
+            const previousCount = previousRootDataRef.current[root.id]?.currentCount || 0;
+            if (root.currentCount > previousCount && previousCount > 0) {
+                // Only trigger animation if there was a previous count (not initial load)
+                triggerTreeAnimation(root.animationFile);
+            }
+        });
+
+        // Update previous data refs
+        previousLeafDataRef.current = leafData.reduce((acc, leaf) => {
+            acc[leaf.id] = { currentCount: leaf.currentCount };
+            return acc;
+        }, {});
+
+        previousRootDataRef.current = rootData.reduce((acc, root) => {
+            acc[root.id] = { currentCount: root.currentCount };
+            return acc;
+        }, {});
+
+    }, [leafData, rootData, isInitialLoad]);
 
     // Trigger animation on tree trunk
     const triggerTreeAnimation = (animationFile) => {
@@ -21,15 +57,6 @@ const TreeContainer = ({ onVoteReceived, totalVotes, totalLeafCount, totalRootCo
         setTimeout(() => {
             setActiveAnimations(prev => prev.filter(a => a.id !== newAnimation.id));
         }, 2000); // adjust to match actual video length
-    };
-
-    // Handle vote received from any leaf or root and trigger animation
-    const handleLocalVoteReceived = (elementId, newCount, animationFile) => {
-        // Trigger animation on tree trunk
-        triggerTreeAnimation(animationFile);
-        
-        // Pass the vote up to parent
-        onVoteReceived(elementId, newCount, animationFile);
     };
 
     return (
@@ -95,24 +122,26 @@ const TreeContainer = ({ onVoteReceived, totalVotes, totalLeafCount, totalRootCo
                 </div>
             </div>
 
-            {/* Render all leaf segments - z-30 (above tree trunk and water animation) */}
-            {LEAF_CONFIG.map(leaf => (
+            {/* Render all leaf segments with API data - z-30 */}
+            {leafData && leafData.map(leaf => (
                 <div key={leaf.id} className="z-30">
                     <LeafSegment
                         leaf={leaf}
-                        onVoteReceived={handleLocalVoteReceived}
                         totalLeafCount={totalLeafCount}
+                        onVoteReceived={() => {}} // Placeholder since we're using API data
+                        isInitialLoad={isInitialLoad}
                     />
                 </div>
             ))}
 
-            {/* Render all root circles - z-40 (top interactive layer) */}
-            {ROOT_CONFIG.map(root => (
+            {/* Render all root circles with API data - z-40 */}
+            {rootData && rootData.map(root => (
                 <div key={root.id} className="z-40">
                     <RootCircle
                         root={root}
-                        onVoteReceived={handleLocalVoteReceived}
                         totalRootCount={totalRootCount}
+                        onVoteReceived={() => {}} // Placeholder since we're using API data
+                        isInitialLoad={isInitialLoad}
                     />
                 </div>
             ))}
@@ -121,6 +150,8 @@ const TreeContainer = ({ onVoteReceived, totalVotes, totalLeafCount, totalRootCo
             {process.env.NODE_ENV === 'development' && (
                 <div className="absolute top-6 left-6 px-4 py-2 bg-black bg-opacity-50 text-white text-sm z-100">
                     <div>Active Animations: {activeAnimations.length}</div>
+                    <div>Total Leaf Count: {totalLeafCount}</div>
+                    <div>Total Root Count: {totalRootCount}</div>
                 </div>
             )}
         </div>
