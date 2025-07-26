@@ -14,6 +14,25 @@ const TreePage = () => {
     const [results, setResults] = useState(null);
     const [previousResults, setPreviousResults] = useState(null);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [questions, setQuestions] = useState(null);
+    const [questionsLoaded, setQuestionsLoaded] = useState(false);
+
+    // Fetch questions once on component mount
+    useEffect(() => {
+        const fetchQuestions = async () => {
+            try {
+                const response = await fetch('/api/questions');
+                const questionsData = await response.json();
+                setQuestions(questionsData);
+                setQuestionsLoaded(true);
+            } catch (error) {
+                console.error('Error fetching questions:', error);
+                setQuestionsLoaded(true); // Still set to true to prevent infinite loading
+            }
+        };
+
+        fetchQuestions();
+    }, []);
 
     useEffect(() => {
         // Listen to the entire results collection for any changes
@@ -62,6 +81,52 @@ const TreePage = () => {
         return () => unsubscribe();
     }, [results, isInitialLoad]);
 
+    // Don't render until questions are loaded
+    if (!questionsLoaded) {
+        return (
+            <div className="w-full h-screen flex items-center justify-center bg-gradient-to-b from-sky-200 via-sky-250 to-sky-300">
+                <div className="text-lg font-semibold text-gray-700">Loading...</div>
+            </div>
+        );
+    }
+
+    // Create merged leaf configuration with API question text
+    const getMergedLeafConfig = () => {
+        if (!questions) return LEAF_CONFIG;
+        
+        const q1 = questions.find(q => q.id === 'q1');
+        if (!q1) return LEAF_CONFIG;
+
+        return LEAF_CONFIG.map((leaf, index) => {
+            const choice = q1.choices[index];
+            return {
+                ...leaf,
+                question: choice ? choice.text : leaf.option, // Use API text or fallback to config
+                option: leaf.option // Keep original as backup
+            };
+        });
+    };
+
+    // Create merged root configuration with API question text
+    const getMergedRootConfig = () => {
+        if (!questions) return ROOT_CONFIG;
+        
+        const q2 = questions.find(q => q.id === 'q2');
+        if (!q2) return ROOT_CONFIG;
+
+        return ROOT_CONFIG.map((root, index) => {
+            const choice = q2.choices[index];
+            return {
+                ...root,
+                question: choice ? choice.text : root.option, // Use API text or fallback to config
+                option: root.option // Keep original as backup
+            };
+        });
+    };
+
+    const mergedLeafConfig = getMergedLeafConfig();
+    const mergedRootConfig = getMergedRootConfig();
+
     // Fallback results object with 0s
     const effectiveResults = results || { 
         totalResponses: 0,
@@ -93,7 +158,7 @@ const TreePage = () => {
         (effectiveResults.q2c5 || 0);
 
     // Create leaf data with API counts
-    const leafDataWithCounts = LEAF_CONFIG.map((leaf, index) => {
+    const leafDataWithCounts = mergedLeafConfig.map((leaf, index) => {
         const apiKey = `q1c${index + 1}`;
         const currentCount = effectiveResults[apiKey] || 0;
         const previousCount = (!isInitialLoad && previousResults) ? (previousResults[apiKey] || 0) : currentCount;
@@ -107,7 +172,7 @@ const TreePage = () => {
     });
 
     // Create root data with API counts
-    const rootDataWithCounts = ROOT_CONFIG.map((root, index) => {
+    const rootDataWithCounts = mergedRootConfig.map((root, index) => {
         const apiKey = `q2c${index + 1}`;
         const currentCount = effectiveResults[apiKey] || 0;
         const previousCount = (!isInitialLoad && previousResults) ? (previousResults[apiKey] || 0) : currentCount;
