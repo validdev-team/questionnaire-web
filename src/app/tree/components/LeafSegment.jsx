@@ -1,27 +1,29 @@
 'use client';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
-    const [count, setCount] = useState(leaf.initialCount);
-    const [isAnimating, setIsAnimating] = useState(false);
+const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived }) => {
     const [shouldBounce, setShouldBounce] = useState(false);
+    const [isAnimating, setIsAnimating] = useState(false);
     const animationRef = useRef(null);
+    const previousCountRef = useRef(leaf.currentCount || leaf.initialCount || 0);
+
+    // Use the count from API data, fallback to initialCount if no currentCount
+    const count = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
+
+    // Check for new votes and trigger animations
+    useEffect(() => {
+        if (count > previousCountRef.current) {
+            triggerBounce();
+            triggerAnimation();
+            previousCountRef.current = count;
+        }
+    }, [count]);
 
     // Calculate leaf size based on TOTAL leaf count across all leaves
     let leafScale = Math.min(2.6 + ((count / (totalLeafCount || 1)) * 1.5), 3.6);
-    if (!leafScale) {
+    if (!leafScale || isNaN(leafScale)) {
         leafScale = 2.6;
     }
-    
-    // Handle new vote received
-    const handleVote = (e) => {
-        setCount(prev => prev + 1);
-        triggerBounce();
-        triggerAnimation();
-        e.preventDefault();
-        e.stopPropagation();
-        onVoteReceived?.(leaf.id, count + 1, leaf.animationFile);
-    };
 
     // Trigger bounce animation
     const triggerBounce = () => {
@@ -48,7 +50,7 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
 
     return (
         <div
-            className="absolute cursor-pointer transition-transform"
+            className="absolute transition-transform"
             style={{
                 left: `${leaf.x}px`,
                 top: `${leaf.y}px`,
@@ -56,7 +58,6 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
                 transform: `scale(${leafScale})`,
                 transformOrigin: 'center center',
             }}
-            onClick={handleVote}
         >
             {/* Inner wrapper for bounce animation */}
             <div
@@ -88,15 +89,26 @@ const LeafSegment = ({ leaf, onVoteReceived, totalLeafCount }) => {
                             {count}
                         </div>
                     </div>
+
+                    {/* WebM Animation Overlay for individual leaf */}
+                    {isAnimating && leaf.animationFile && (
+                        <video
+                            ref={animationRef}
+                            className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-80"
+                            style={{
+                                transform: 'scale(1.2)',
+                                transformOrigin: 'center center'
+                            }}
+                            muted
+                            playsInline
+                            onEnded={handleAnimationEnd}
+                        >
+                            <source src={`/animation/${leaf.animationFile}`} type="video/webm" />
+                            <source src={`/animation/${leaf.animationFile.replace('.webm', '.mp4')}`} type="video/mp4" />
+                        </video>
+                    )}
                 </div>
             </div>
-
-            {/* Custom CSS for text shadow */}
-            <style jsx>{`
-                .text-shadow {
-                    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-                }
-            `}</style>
         </div>
     );
 };

@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { doc, onSnapshot} from 'firebase/firestore';
+import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 
 import TreeContainer from './components/TreeContainer';
@@ -12,49 +12,98 @@ import { LEAF_CONFIG, ROOT_CONFIG } from './config/treeConfig';
 // ============================================================================
 const TreePage = () => {
     const [results, setResults] = useState(null);
+    const [previousResults, setPreviousResults] = useState(null);
 
     useEffect(() => {
-        // Establish live count connection once
+        // Listen to the entire results collection for any changes
         const unsubscribe = onSnapshot(
-            doc(db, 'results', 'live'),
-            (docSnap) => {
-                if (docSnap.exists()) {
-                    setResults(docSnap.data());
-                } else {
-                    setResults(null);
+            collection(db, 'results'),
+            async (collectionSnapshot) => {
+                try {
+                    // When results collection changes, fetch the specific live document
+                    const liveDocRef = doc(db, 'results', 'live');
+                    const liveDocSnap = await getDoc(liveDocRef);
+                    
+                    if (liveDocSnap.exists()) {
+                        const newData = liveDocSnap.data();
+                        
+                        // Store previous results before updating
+                        setPreviousResults(results);
+                        setResults(newData);
+                    } else {
+                        console.log('No live document found');
+                        setPreviousResults(results);
+                        setResults(null);
+                    }
+                } catch (error) {
+                    console.error('Error fetching live document:', error);
                 }
-            }, (err) => {
-                console.error('Error listening to results/live:', err);
+            },
+            (error) => {
+                console.error('Error listening to results collection:', error);
             }
         );
-    }, []);
+
+        return () => unsubscribe();
+    }, [results]);
 
     // Fallback results object with 0s
-    const effectiveResults = results || { totalResponses: 0 };
+    const effectiveResults = results || { 
+        totalResponses: 0,
+        q1c1: 0, q1c2: 0, q1c3: 0, q1c4: 0, q1c5: 0,
+        q1c6: 0, q1c7: 0, q1c8: 0, q1c9: 0,
+        q2c1: 0, q2c2: 0, q2c3: 0, q2c4: 0, q2c5: 0
+    };
+    
     const totalResponses = effectiveResults.totalResponses || 0;
 
-    // Track total leaf count separately from total votes
-    const [totalLeafCount, setTotalLeafCount] = useState(() => {
-        return LEAF_CONFIG.reduce((sum, leaf) => sum + leaf.initialCount, 0);
-    });
+    // Calculate total leaf count from API data
+    const totalLeafCount =
+        (effectiveResults.q1c1 || 0) +
+        (effectiveResults.q1c2 || 0) +
+        (effectiveResults.q1c3 || 0) +
+        (effectiveResults.q1c4 || 0) +
+        (effectiveResults.q1c5 || 0) +
+        (effectiveResults.q1c6 || 0) +
+        (effectiveResults.q1c7 || 0) +
+        (effectiveResults.q1c8 || 0) +
+        (effectiveResults.q1c9 || 0);
 
-    // Track total root count separately from total votes
-    const [totalRootCount, setTotalRootCount] = useState(() => {
-        return ROOT_CONFIG.reduce((sum, root) => sum + root.initialCount, 0);
-    });
+    // Calculate total root count from API data
+    const totalRootCount =
+        (effectiveResults.q2c1 || 0) +
+        (effectiveResults.q2c2 || 0) +
+        (effectiveResults.q2c3 || 0) +
+        (effectiveResults.q2c4 || 0) +
+        (effectiveResults.q2c5 || 0);
 
-    // Handle vote received from tree container
-    const handleVoteReceived = (elementId, newCount, animationFile) => {
-        // If this is a leaf vote, update the total leaf count
-        const isLeafVote = LEAF_CONFIG.some(leaf => leaf.id === elementId);
-        const isRootVote = ROOT_CONFIG.some(root => root.id === elementId);
+    // Create leaf data with API counts
+    const leafDataWithCounts = LEAF_CONFIG.map((leaf, index) => {
+        const apiKey = `q1c${index + 1}`;
+        const currentCount = effectiveResults[apiKey] || 0;
+        const previousCount = previousResults?.[apiKey] || 0;
+        const hasNewVote = currentCount > previousCount;
         
-        if (isLeafVote) {
-            setTotalLeafCount(prev => prev + 1);
-        } else if (isRootVote) {
-            setTotalRootCount(prev => prev + 1);
-        }
-    };
+        return {
+            ...leaf,
+            currentCount,
+            hasNewVote
+        };
+    });
+
+    // Create root data with API counts
+    const rootDataWithCounts = ROOT_CONFIG.map((root, index) => {
+        const apiKey = `q2c${index + 1}`;
+        const currentCount = effectiveResults[apiKey] || 0;
+        const previousCount = previousResults?.[apiKey] || 0;
+        const hasNewVote = currentCount > previousCount;
+        
+        return {
+            ...root,
+            currentCount,
+            hasNewVote
+        };
+    });
 
     return (
         <div className="w-full h-screen relative overflow-hidden bg-gradient-to-b from-sky-200 via-sky-250 to-sky-300">
@@ -91,10 +140,11 @@ const TreePage = () => {
 
             <TreeContainer 
                 className=""
-                onVoteReceived={handleVoteReceived}
                 totalVotes={totalResponses}
                 totalLeafCount={totalLeafCount}
                 totalRootCount={totalRootCount}
+                leafData={leafDataWithCounts}
+                rootData={rootDataWithCounts}
             />
         </div>
     );
