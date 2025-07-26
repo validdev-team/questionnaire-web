@@ -23,10 +23,8 @@ const TreePage = () => {
                 } else {
                     setResults(null);
                 }
-                setLoading(false);
             }, (err) => {
                 console.error('Error listening to results/live:', err);
-                setLoading(false);
             }
         );
     }, []);
