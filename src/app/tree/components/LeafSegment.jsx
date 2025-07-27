@@ -4,26 +4,49 @@ import React, { useState, useRef, useEffect } from 'react';
 const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) => {
     const [shouldBounce, setShouldBounce] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [clientCount, setClientCount] = useState(0);
     const animationRef = useRef(null);
-    const previousCountRef = useRef(leaf.currentCount || leaf.initialCount || 0);
+    
+    // Initialize with the actual value immediately, not null
+    const initialCount = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
+    const initialCountRef = useRef(initialCount);
+    const previousCountRef = useRef(initialCount);
+
+    // Update initialCountRef only if it hasn't been set yet
+    useEffect(() => {
+        if (initialCountRef.current === null || initialCountRef.current === 0) {
+            const initialValue = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
+            initialCountRef.current = initialValue;
+        }
+    }, [leaf]);
 
     // Use the count from API data, fallback to initialCount if no currentCount
     const count = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
 
-    // Check for new votes and trigger animations
+    // Listen for custom bounce events from TreeContainer
     useEffect(() => {
-        // Don't trigger animations on initial load or if no previous data
-        if (isInitialLoad || previousCountRef.current === 0) {
-            previousCountRef.current = count;
-            return;
-        }
+        const handleBounceEvent = (event) => {
+            const { elementId, type, netCountChanged } = event.detail;
+            
+            // Only bounce if this event is for this specific leaf
+            if (type === 'leaf' && elementId === leaf.id) {
+                triggerBounce(netCountChanged || 1);
+                // Note: We don't trigger the individual leaf animation here anymore
+                // The main water animation is handled by TreeContainer
+            }
+        };
 
-        if (count > previousCountRef.current) {
-            triggerBounce();
-            triggerAnimation();
-            previousCountRef.current = count;
-        }
-    }, [count, isInitialLoad]);
+        window.addEventListener('triggerBounce', handleBounceEvent);
+        
+        return () => {
+            window.removeEventListener('triggerBounce', handleBounceEvent);
+        };
+    }, [leaf.id]);
+
+    // Update previous count reference when count changes (but don't trigger animations)
+    useEffect(() => {
+        previousCountRef.current = count;
+    }, [count]);
 
     // Calculate leaf size based on TOTAL leaf count across all leaves
     let leafScale = Math.min(2.6 + ((count / (totalLeafCount || 1)) * 1.5), 3.6);
@@ -31,16 +54,17 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
         leafScale = 2.6;
     }
 
-    // Trigger bounce animation
-    const triggerBounce = () => {
+    // Trigger bounce animation and increment client count by netCountChanged (only called by custom event now)
+    const triggerBounce = (netCountChanged = 1) => {
         setShouldBounce(true);
+        setClientCount(prevCount => prevCount + netCountChanged);
     };
 
     const handleBounceEnd = () => {
         setShouldBounce(false);
     };
 
-    // Trigger WebM animation when vote is received
+    // These functions are kept for potential future use but not called automatically
     const triggerAnimation = () => {
         if (animationRef.current && !isAnimating) {
             setIsAnimating(true);
@@ -49,10 +73,12 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
         }
     };
 
-    // Reset animation state when WebM finishes playing
     const handleAnimationEnd = () => {
         setIsAnimating(false);
     };
+
+    // Calculate the display count - use initialCountRef.current with fallback
+    const displayCount = (initialCountRef.current || 0) + clientCount;
 
     return (
         <div
@@ -92,27 +118,12 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
                             {leaf.question}
                         </div>
                         <div className="text-[6px] font-bold">
-                            {count}
+                            {displayCount}
                         </div>
                     </div>
 
-                    {/* WebM Animation Overlay for individual leaf */}
-                    {isAnimating && leaf.animationFile && (
-                        <video
-                            ref={animationRef}
-                            className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-80"
-                            style={{
-                                transform: 'scale(1.2)',
-                                transformOrigin: 'center center'
-                            }}
-                            muted
-                            playsInline
-                            onEnded={handleAnimationEnd}
-                        >
-                            <source src={`/animation/${leaf.animationFile}`} type="video/webm" />
-                            <source src={`/animation/${leaf.animationFile.replace('.webm', '.mp4')}`} type="video/mp4" />
-                        </video>
-                    )}
+                    {/* Individual leaf animation is removed since TreeContainer handles the main animation */}
+                    {/* We could add this back if you want both animations, but typically you'd want one or the other */}
                 </div>
             </div>
         </div>

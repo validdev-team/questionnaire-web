@@ -4,40 +4,65 @@ import React, { useState, useRef, useEffect } from 'react';
 const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => {
     const [isBouncing, setIsBouncing] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [clientCount, setClientCount] = useState(0);
     const animationRef = useRef(null);
-    const previousCountRef = useRef(root.currentCount || root.initialCount || 0);
+    
+    // Initialize with the actual value immediately, not null
+    const initialCount = root.currentCount !== undefined ? root.currentCount : root.initialCount || 0;
+    const initialCountRef = useRef(initialCount);
+    const previousCountRef = useRef(initialCount);
+
+    // Update initialCountRef only if it hasn't been set yet
+    useEffect(() => {
+        if (initialCountRef.current === null || initialCountRef.current === 0) {
+            const initialValue = root.currentCount !== undefined ? root.currentCount : root.initialCount || 0;
+            initialCountRef.current = initialValue;
+        }
+    }, [root]);
 
     // Use the count from API data, fallback to initialCount if no currentCount
     const count = root.currentCount !== undefined ? root.currentCount : root.initialCount || 0;
 
-    // Check for new votes and trigger animations
+    // Listen for custom bounce events from TreeContainer
     useEffect(() => {
-        // Don't trigger animations on initial load or if no previous data
-        if (isInitialLoad || previousCountRef.current === 0) {
-            previousCountRef.current = count;
-            return;
-        }
+        const handleBounceEvent = (event) => {
+            const { elementId, type, netCountChanged } = event.detail;
+            
+            // Only bounce if this event is for this specific root
+            if (type === 'root' && elementId === root.id) {
+                triggerBounce(netCountChanged || 1);
+                // Note: We don't trigger the individual root animation here anymore
+                // The main water animation is handled by TreeContainer
+            }
+        };
 
-        if (count > previousCountRef.current) {
-            triggerBounce();
-            triggerAnimation();
-            previousCountRef.current = count;
-        }
-    }, [count, isInitialLoad]);
+        window.addEventListener('triggerBounce', handleBounceEvent);
+        
+        return () => {
+            window.removeEventListener('triggerBounce', handleBounceEvent);
+        };
+    }, [root.id]);
 
-    // Calculate root size based on individual root count relative to total
+    // Update previous count reference when count changes (but don't trigger animations)
+    useEffect(() => {
+        previousCountRef.current = count;
+    }, [count]);
+
+    // Calculate root size based on TOTAL root count across all roots
     let rootScale = Math.min(1 + ((count / (totalRootCount || 1)) * 1.5), 1.2);
     if (!rootScale || isNaN(rootScale)) {
         rootScale = 1;
     }
 
-    // Trigger bounce animation
-    const triggerBounce = () => {
+    // Trigger bounce animation and increment client count by netCountChanged (only called by custom event now)
+    const triggerBounce = (netCountChanged = 1) => {
         setIsBouncing(true);
+        setClientCount(prevCount => prevCount + netCountChanged);
         // Reset bounce after animation duration
-        setTimeout(() => setIsBouncing(false), 300);
+        setTimeout(() => setIsBouncing(false), 500); // Increased to match leaf duration
     };
 
+    // These functions are kept for potential future use but not called automatically
     const triggerAnimation = () => {
         if (animationRef.current && !isAnimating) {
             setIsAnimating(true);
@@ -53,6 +78,9 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
     // Calculate final transform including both scale and bounce
     const finalScale = rootScale * (isBouncing ? 1.15 : 1);
 
+    // Calculate the display count - use initialCountRef.current with fallback
+    const displayCount = (initialCountRef.current || 0) + clientCount;
+
     return (
         <div
             className="absolute"
@@ -62,7 +90,7 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
                 zIndex: root.zIndex,
                 transform: `scale(${finalScale})`,
                 transformOrigin: 'center center',
-                transition: isBouncing ? 'transform 0.5s bounce-custom' : 'transform 0.2s ease-out',
+                transition: isBouncing ? 'transform 0.5s ease-out' : 'transform 0.2s ease-out',
             }}
         >
             {/* Static SVG Circle */}
@@ -79,30 +107,15 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
                 {/* Count Display */}
                 <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-white font-bold text-lg">
-                        {count}
+                        {displayCount}
                     </span>
                 </div>
                 <div className="text-[10px] font-medium leading-tight mb-[1px] text-center px-6 text-black">
                     {root.question}
                 </div>
 
-                {/* WebM Animation Overlay for individual root */}
-                {isAnimating && root.animationFile && (
-                    <video
-                        ref={animationRef}
-                        className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-80"
-                        style={{
-                            transform: 'scale(1.2)',
-                            transformOrigin: 'center center'
-                        }}
-                        muted
-                        playsInline
-                        onEnded={handleAnimationEnd}
-                    >
-                        <source src={`/animation/${root.animationFile}`} type="video/webm" />
-                        <source src={`/animation/${root.animationFile.replace('.webm', '.mp4')}`} type="video/mp4" />
-                    </video>
-                )}
+                {/* Individual root animation is removed since TreeContainer handles the main animation */}
+                {/* We could add this back if you want both animations, but typically you'd want one or the other */}
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 
@@ -17,23 +17,24 @@ const TreePage = () => {
     const [questions, setQuestions] = useState(null);
     const [questionsLoaded, setQuestionsLoaded] = useState(false);
 
-    // Fetch questions once on component mount
-    useEffect(() => {
-        const fetchQuestions = async () => {
-            try {
-                const response = await fetch('/api/questions');
-                const questionsData = await response.json();
-                setQuestions(questionsData);
-                setQuestionsLoaded(true);
-            } catch (error) {
-                console.error('Error fetching questions:', error);
-                setQuestionsLoaded(true); // Still set to true to prevent infinite loading
-            }
-        };
-
-        fetchQuestions();
+    // Fetch questions once on component mount - optimized with useCallback
+    const fetchQuestions = useCallback(async () => {
+        try {
+            const response = await fetch('/api/questions');
+            const questionsData = await response.json();
+            setQuestions(questionsData);
+            setQuestionsLoaded(true);
+        } catch (error) {
+            console.error('Error fetching questions:', error);
+            setQuestionsLoaded(true);
+        }
     }, []);
 
+    useEffect(() => {
+        fetchQuestions();
+    }, [fetchQuestions]);
+
+    // Optimized Firebase listener with proper dependency array
     useEffect(() => {
         // Listen to the entire results collection for any changes
         const unsubscribe = onSnapshot(
@@ -47,12 +48,14 @@ const TreePage = () => {
                     if (liveDocSnap.exists()) {
                         const newData = liveDocSnap.data();
                         
-                        // Only store previous results after the initial load
-                        if (!isInitialLoad) {
-                            setPreviousResults(results);
-                        }
-                        
-                        setResults(newData);
+                        // Use functional updates to avoid dependency on current state
+                        setResults(prevResults => {
+                            // Only store previous results after the initial load
+                            if (!isInitialLoad) {
+                                setPreviousResults(prevResults);
+                            }
+                            return newData;
+                        });
                         
                         // Mark initial load as complete after first data fetch
                         if (isInitialLoad) {
@@ -60,10 +63,12 @@ const TreePage = () => {
                         }
                     } else {
                         console.log('No live document found');
-                        if (!isInitialLoad) {
-                            setPreviousResults(results);
-                        }
-                        setResults(null);
+                        setResults(prevResults => {
+                            if (!isInitialLoad) {
+                                setPreviousResults(prevResults);
+                            }
+                            return null;
+                        });
                         
                         if (isInitialLoad) {
                             setIsInitialLoad(false);
@@ -79,19 +84,10 @@ const TreePage = () => {
         );
 
         return () => unsubscribe();
-    }, [results, isInitialLoad]);
+    }, []); // Empty dependency array - no more infinite re-subscriptions
 
-    // Don't render until questions are loaded
-    if (!questionsLoaded) {
-        return (
-            <div className="w-full h-screen flex items-center justify-center bg-gradient-to-b from-sky-200 via-sky-250 to-sky-300">
-                <div className="text-lg font-semibold text-gray-700">Loading...</div>
-            </div>
-        );
-    }
-
-    // Create merged leaf configuration with API question text
-    const getMergedLeafConfig = () => {
+    // Memoize merged configurations to prevent recalculation on every render
+    const mergedLeafConfig = useMemo(() => {
         if (!questions) return LEAF_CONFIG;
         
         const q1 = questions.find(q => q.id === 'q1');
@@ -101,14 +97,13 @@ const TreePage = () => {
             const choice = q1.choices[index];
             return {
                 ...leaf,
-                question: choice ? choice.text : leaf.option, // Use API text or fallback to config
-                option: leaf.option // Keep original as backup
+                question: choice ? choice.text : leaf.option,
+                option: leaf.option
             };
         });
-    };
+    }, [questions]);
 
-    // Create merged root configuration with API question text
-    const getMergedRootConfig = () => {
+    const mergedRootConfig = useMemo(() => {
         if (!questions) return ROOT_CONFIG;
         
         const q2 = questions.find(q => q.id === 'q2');
@@ -118,88 +113,111 @@ const TreePage = () => {
             const choice = q2.choices[index];
             return {
                 ...root,
-                question: choice ? choice.text : root.option, // Use API text or fallback to config
-                option: root.option // Keep original as backup
+                question: choice ? choice.text : root.option,
+                option: root.option
             };
         });
-    };
+    }, [questions]);
 
-    const mergedLeafConfig = getMergedLeafConfig();
-    const mergedRootConfig = getMergedRootConfig();
-
-    // Fallback results object with 0s
-    const effectiveResults = results || { 
-        totalResponses: 0,
-        q1c1: 0, q1c2: 0, q1c3: 0, q1c4: 0, q1c5: 0,
-        q1c6: 0, q1c7: 0, q1c8: 0, q1c9: 0,
-        q2c1: 0, q2c2: 0, q2c3: 0, q2c4: 0, q2c5: 0
-    };
-    
-    const totalResponses = effectiveResults.totalResponses || 0;
-
-    // Calculate total leaf count from API data
-    const totalLeafCount =
-        (effectiveResults.q1c1 || 0) +
-        (effectiveResults.q1c2 || 0) +
-        (effectiveResults.q1c3 || 0) +
-        (effectiveResults.q1c4 || 0) +
-        (effectiveResults.q1c5 || 0) +
-        (effectiveResults.q1c6 || 0) +
-        (effectiveResults.q1c7 || 0) +
-        (effectiveResults.q1c8 || 0) +
-        (effectiveResults.q1c9 || 0);
-
-    // Calculate total root count from API data
-    const totalRootCount =
-        (effectiveResults.q2c1 || 0) +
-        (effectiveResults.q2c2 || 0) +
-        (effectiveResults.q2c3 || 0) +
-        (effectiveResults.q2c4 || 0) +
-        (effectiveResults.q2c5 || 0);
-
-    // Create leaf data with API counts
-    const leafDataWithCounts = mergedLeafConfig.map((leaf, index) => {
-        const apiKey = `q1c${index + 1}`;
-        const currentCount = effectiveResults[apiKey] || 0;
-        const previousCount = (!isInitialLoad && previousResults) ? (previousResults[apiKey] || 0) : currentCount;
-        const hasNewVote = !isInitialLoad && currentCount > previousCount;
-        
-        return {
-            ...leaf,
-            currentCount,
-            hasNewVote
+    // Memoize calculated values
+    const calculatedValues = useMemo(() => {
+        const effectiveResults = results || { 
+            totalResponses: 0,
+            q1c1: 0, q1c2: 0, q1c3: 0, q1c4: 0, q1c5: 0,
+            q1c6: 0, q1c7: 0, q1c8: 0, q1c9: 0,
+            q2c1: 0, q2c2: 0, q2c3: 0, q2c4: 0, q2c5: 0
         };
-    });
-
-    // Create root data with API counts
-    const rootDataWithCounts = mergedRootConfig.map((root, index) => {
-        const apiKey = `q2c${index + 1}`;
-        const currentCount = effectiveResults[apiKey] || 0;
-        const previousCount = (!isInitialLoad && previousResults) ? (previousResults[apiKey] || 0) : currentCount;
-        const hasNewVote = !isInitialLoad && currentCount > previousCount;
         
+        const totalResponses = effectiveResults.totalResponses || 0;
+
+        const totalLeafCount =
+            (effectiveResults.q1c1 || 0) +
+            (effectiveResults.q1c2 || 0) +
+            (effectiveResults.q1c3 || 0) +
+            (effectiveResults.q1c4 || 0) +
+            (effectiveResults.q1c5 || 0) +
+            (effectiveResults.q1c6 || 0) +
+            (effectiveResults.q1c7 || 0) +
+            (effectiveResults.q1c8 || 0) +
+            (effectiveResults.q1c9 || 0);
+
+        const totalRootCount =
+            (effectiveResults.q2c1 || 0) +
+            (effectiveResults.q2c2 || 0) +
+            (effectiveResults.q2c3 || 0) +
+            (effectiveResults.q2c4 || 0) +
+            (effectiveResults.q2c5 || 0);
+
         return {
-            ...root,
-            currentCount,
-            hasNewVote
+            effectiveResults,
+            totalResponses,
+            totalLeafCount,
+            totalRootCount
         };
-    });
+    }, [results]);
+
+    // Memoize leaf data with counts and netCountChanged
+    const leafDataWithCounts = useMemo(() => {
+        return mergedLeafConfig.map((leaf, index) => {
+            const apiKey = `q1c${index + 1}`;
+            const currentCount = calculatedValues.effectiveResults[apiKey] || 0;
+            const previousCount = (!isInitialLoad && previousResults) 
+                ? (previousResults[apiKey] || 0) 
+                : 0; // Use 0 for initial load, not currentCount
+            const hasNewVote = !isInitialLoad && currentCount > previousCount;
+            const netCountChanged = currentCount - previousCount;
+            
+            return {
+                ...leaf,
+                currentCount,
+                hasNewVote,
+                netCountChanged
+            };
+        });
+    }, [mergedLeafConfig, calculatedValues.effectiveResults, previousResults, isInitialLoad]);
+
+    // Memoize root data with counts and netCountChanged
+    const rootDataWithCounts = useMemo(() => {
+        return mergedRootConfig.map((root, index) => {
+            const apiKey = `q2c${index + 1}`;
+            const currentCount = calculatedValues.effectiveResults[apiKey] || 0;
+            const previousCount = (!isInitialLoad && previousResults) 
+                ? (previousResults[apiKey] || 0) 
+                : 0; // Use 0 for initial load, not currentCount
+            const hasNewVote = !isInitialLoad && currentCount > previousCount;
+            const netCountChanged = currentCount - previousCount;
+            
+            return {
+                ...root,
+                currentCount,
+                hasNewVote,
+                netCountChanged
+            };
+        });
+    }, [mergedRootConfig, calculatedValues.effectiveResults, previousResults, isInitialLoad]);
+
+    // Early return for loading state
+    if (!questionsLoaded) {
+        return (
+            <div className="w-full h-screen flex items-center justify-center bg-gradient-to-b from-sky-200 via-sky-250 to-sky-300">
+                <div className="text-lg font-semibold text-gray-700">Loading...</div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full h-screen relative overflow-hidden bg-gradient-to-b from-sky-200 via-sky-250 to-sky-300">
             {/* Include shared styles */}
             <TreeStyles />
 
-            {/* ============================== */}
-            {/* RESPONSIVE BACKGROUND ELEMENTS */}
-            {/* ============================== */}
-
-            {/* Sky Background - Full screen - z-10 */}
+            {/* Sky Background - Optimized image loading */}
             <div className="absolute h-[70vh] inset-0 z-10">
                 <img
                     src="/svg/Sky.svg"
                     alt="Sky background"
                     className="w-full h-full object-cover"
+                    loading="eager"
+                    decoding="async"
                     onError={(e) => {
                         console.error('Sky SVG failed to load');
                         e.target.style.display = 'none';
@@ -207,22 +225,20 @@ const TreePage = () => {
                 />
             </div>
 
+            {/* Ground Background */}
             <div
                 className="absolute h-[30vh] inset-x-0 bottom-0 z-20"
                 style={{
                     background: 'linear-gradient(to bottom, #c89462, #7e644d)',
                 }}
-            ></div>
+            />
 
-            {/* ============================== */}
-            {/* FIXED SIZE TREE CONTAINER */}
-            {/* ============================== */}
-
+            {/* Tree Container with memoized props */}
             <TreeContainer 
                 className=""
-                totalVotes={totalResponses}
-                totalLeafCount={totalLeafCount}
-                totalRootCount={totalRootCount}
+                totalVotes={calculatedValues.totalResponses}
+                totalLeafCount={calculatedValues.totalLeafCount}
+                totalRootCount={calculatedValues.totalRootCount}
                 leafData={leafDataWithCounts}
                 rootData={rootDataWithCounts}
                 isInitialLoad={isInitialLoad}
@@ -231,4 +247,4 @@ const TreePage = () => {
     );
 };
 
-export default TreePage;
+export default React.memo(TreePage);

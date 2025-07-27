@@ -3,33 +3,128 @@ import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import LeafSegment from './LeafSegment';
 import RootCircle from './RootCircle';
+import LoadingTree from './LoadingTree';
 
 const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, rootData, isInitialLoad }) => {
     const [activeAnimations, setActiveAnimations] = useState([]);
+    const [animationQueue, setAnimationQueue] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    
+    // Check if we have all required data
+    useEffect(() => {
+        if (leafData && rootData && totalVotes !== undefined) {
+            setIsLoading(false);
+        }
+    }, [leafData, rootData, totalVotes]);
     const previousLeafDataRef = useRef({});
     const previousRootDataRef = useRef({});
+    
+    // Configuration for animation limits
+    const MAX_CONCURRENT_ANIMATIONS = 4; // Maximum animations playing at once
+    const ANIMATION_DURATION = 2000; // Duration in milliseconds
+    
+    // Timing configuration for when water reaches different elements
+    const WATER_TIMING = {
+        leaf: 1200, // Time when water reaches leaves (adjust based on your animation)
+        root: 800   // Time when water reaches roots (adjust based on your animation)
+    };
 
-    // Check for new votes and trigger animations
+    // Process animation queue
+    useEffect(() => {
+        if (animationQueue.length > 0 && activeAnimations.length < MAX_CONCURRENT_ANIMATIONS) {
+            const nextAnimation = animationQueue[0];
+            
+            // Move from queue to active
+            setAnimationQueue(prev => prev.slice(1));
+            setActiveAnimations(prev => [...prev, nextAnimation]);
+
+            // Start the water animation immediately
+
+            // Schedule the bounce animation to trigger when water reaches the element
+            const bounceTimeout = setTimeout(() => {
+                triggerElementBounce(nextAnimation.elementId, nextAnimation.type, nextAnimation.netCountChanged);
+            }, WATER_TIMING[nextAnimation.type]);
+
+            // Store the timeout ID so we can clear it if needed
+            nextAnimation.bounceTimeoutId = bounceTimeout;
+
+            // Auto-remove animation after it finishes
+            const cleanupTimeout = setTimeout(() => {
+                setActiveAnimations(prev => {
+                    const updated = prev.filter(a => a.id !== nextAnimation.id);
+                    // Clear the bounce timeout if animation is removed early
+                    if (nextAnimation.bounceTimeoutId) {
+                        clearTimeout(nextAnimation.bounceTimeoutId);
+                    }
+                    return updated;
+                });
+            }, ANIMATION_DURATION);
+
+            // Store cleanup timeout ID
+            nextAnimation.cleanupTimeoutId = cleanupTimeout;
+        }
+    }, [animationQueue, activeAnimations]);
+
+    // Function to trigger bounce on specific leaf/root
+    const triggerElementBounce = (elementId, type, netCountChanged) => {
+        // Create a custom event to communicate with individual components
+        const event = new CustomEvent('triggerBounce', {
+            detail: { 
+                elementId, 
+                type,
+                netCountChanged,
+                timestamp: Date.now() // Add timestamp for debugging
+            }
+        });
+        window.dispatchEvent(event);
+    };
+
+    // Check for new votes and add animations to queue
     useEffect(() => {
         if (!leafData || !rootData || isInitialLoad) return;
 
+        const newAnimations = [];
+
         // Check leaves for new votes
         leafData.forEach(leaf => {
-            const previousCount = previousLeafDataRef.current[leaf.id]?.currentCount || 0;
-            if (leaf.currentCount > previousCount && previousCount > 0) {
-                // Only trigger animation if there was a previous count (not initial load)
-                triggerTreeAnimation(leaf.animationFile);
+            const previousCount = previousLeafDataRef.current[leaf.id]?.currentCount ?? leaf.currentCount;
+            if (leaf.currentCount > previousCount) {
+                // Calculate the actual change between current and previous count
+                const actualChange = leaf.currentCount - previousCount;
+                // Add to queue with unique ID and actual change count
+                newAnimations.push({
+                    id: `leaf-${leaf.id}-${Date.now()}-${Math.random()}`,
+                    file: leaf.animationFile,
+                    type: 'leaf',
+                    elementId: leaf.id,
+                    netCountChanged: actualChange, // Use the direct difference
+                    createdAt: Date.now()
+                });
             }
         });
 
         // Check roots for new votes
         rootData.forEach(root => {
-            const previousCount = previousRootDataRef.current[root.id]?.currentCount || 0;
-            if (root.currentCount > previousCount && previousCount > 0) {
-                // Only trigger animation if there was a previous count (not initial load)
-                triggerTreeAnimation(root.animationFile);
+            const previousCount = previousRootDataRef.current[root.id]?.currentCount ?? root.currentCount;
+            if (root.currentCount > previousCount) {
+                // Calculate the actual change between current and previous count
+                const actualChange = root.currentCount - previousCount;
+                // Add to queue with unique ID and actual change count
+                newAnimations.push({
+                    id: `root-${root.id}-${Date.now()}-${Math.random()}`,
+                    file: root.animationFile,
+                    type: 'root',
+                    elementId: root.id,
+                    netCountChanged: actualChange, // Use the direct difference
+                    createdAt: Date.now()
+                });
             }
         });
+
+        // Add new animations to queue
+        if (newAnimations.length > 0) {
+            setAnimationQueue(prev => [...prev, ...newAnimations]);
+        }
 
         // Update previous data refs
         previousLeafDataRef.current = leafData.reduce((acc, leaf) => {
@@ -44,20 +139,23 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
 
     }, [leafData, rootData, isInitialLoad]);
 
-    // Trigger animation on tree trunk
-    const triggerTreeAnimation = (animationFile) => {
-        const newAnimation = {
-            id: uuidv4(),
-            file: animationFile,
+    // Cleanup timeouts on unmount
+    useEffect(() => {
+        return () => {
+            activeAnimations.forEach(anim => {
+                if (anim.bounceTimeoutId) {
+                    clearTimeout(anim.bounceTimeoutId);
+                }
+                if (anim.cleanupTimeoutId) {
+                    clearTimeout(anim.cleanupTimeoutId);
+                }
+            });
         };
+    }, []);
 
-        setActiveAnimations(prev => [...prev, newAnimation]);
-
-        // Auto-remove animation after it finishes (e.g., 2 seconds)
-        setTimeout(() => {
-            setActiveAnimations(prev => prev.filter(a => a.id !== newAnimation.id));
-        }, 2000); // adjust to match actual video length
-    };
+    if (isLoading) {
+        return <LoadingTree />;
+    }
 
     return (
         <div className="
@@ -102,8 +200,22 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                         muted
                         playsInline
                         autoPlay
+                        onLoadedData={() => {
+                        }}
+                        onPlay={() => {
+                        }}
                         onEnded={() => {
-                            setActiveAnimations(prev => prev.filter(a => a.id !== anim.id));
+                            setActiveAnimations(prev => {
+                                const updated = prev.filter(a => a.id !== anim.id);
+                                // Clear timeouts when video ends
+                                if (anim.bounceTimeoutId) {
+                                    clearTimeout(anim.bounceTimeoutId);
+                                }
+                                if (anim.cleanupTimeoutId) {
+                                    clearTimeout(anim.cleanupTimeoutId);
+                                }
+                                return updated;
+                            });
                         }}
                     >
                         <source src={`/animation/${anim.file}`} type="video/webm" />
@@ -150,8 +262,19 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
             {process.env.NODE_ENV === 'development' && (
                 <div className="absolute top-6 left-6 px-4 py-2 bg-black bg-opacity-50 text-white text-sm z-100">
                     <div>Active Animations: {activeAnimations.length}</div>
+                    <div>Queued Animations: {animationQueue.length}</div>
                     <div>Total Leaf Count: {totalLeafCount}</div>
                     <div>Total Root Count: {totalRootCount}</div>
+                    {activeAnimations.length > 0 && (
+                        <div className="mt-2 text-xs">
+                            <div>Current animations:</div>
+                            {activeAnimations.map(anim => (
+                                <div key={anim.id} className="text-yellow-300">
+                                    {anim.type} {anim.elementId} (+{anim.netCountChanged})
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
