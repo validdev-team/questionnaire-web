@@ -4,8 +4,21 @@ import React, { useState, useRef, useEffect } from 'react';
 const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => {
     const [isBouncing, setIsBouncing] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [clientCount, setClientCount] = useState(0);
     const animationRef = useRef(null);
-    const previousCountRef = useRef(root.currentCount || root.initialCount || 0);
+    
+    // Initialize with the actual value immediately, not null
+    const initialCount = root.currentCount !== undefined ? root.currentCount : root.initialCount || 0;
+    const initialCountRef = useRef(initialCount);
+    const previousCountRef = useRef(initialCount);
+
+    // Update initialCountRef only if it hasn't been set yet
+    useEffect(() => {
+        if (initialCountRef.current === null || initialCountRef.current === 0) {
+            const initialValue = root.currentCount !== undefined ? root.currentCount : root.initialCount || 0;
+            initialCountRef.current = initialValue;
+        }
+    }, [root]);
 
     // Use the count from API data, fallback to initialCount if no currentCount
     const count = root.currentCount !== undefined ? root.currentCount : root.initialCount || 0;
@@ -35,15 +48,16 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
         previousCountRef.current = count;
     }, [count]);
 
-    // Calculate root size based on individual root count relative to total
+    // Calculate root size based on TOTAL root count across all roots
     let rootScale = Math.min(1 + ((count / (totalRootCount || 1)) * 1.5), 1.2);
     if (!rootScale || isNaN(rootScale)) {
         rootScale = 1;
     }
 
-    // Trigger bounce animation (only called by custom event now)
+    // Trigger bounce animation and increment client count (only called by custom event now)
     const triggerBounce = () => {
         setIsBouncing(true);
+        setClientCount(prevCount => prevCount + 1);
         // Reset bounce after animation duration
         setTimeout(() => setIsBouncing(false), 500); // Increased to match leaf duration
     };
@@ -63,6 +77,9 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
 
     // Calculate final transform including both scale and bounce
     const finalScale = rootScale * (isBouncing ? 1.15 : 1);
+
+    // Calculate the display count - use initialCountRef.current with fallback
+    const displayCount = (initialCountRef.current || 0) + clientCount;
 
     return (
         <div
@@ -90,7 +107,7 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
                 {/* Count Display */}
                 <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-white font-bold text-lg">
-                        {count}
+                        {displayCount}
                     </span>
                 </div>
                 <div className="text-[10px] font-medium leading-tight mb-[1px] text-center px-6 text-black">
