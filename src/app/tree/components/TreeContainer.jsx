@@ -3,10 +3,19 @@ import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import LeafSegment from './LeafSegment';
 import RootCircle from './RootCircle';
+import LoadingTree from './LoadingTree';
 
 const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, rootData, isInitialLoad }) => {
     const [activeAnimations, setActiveAnimations] = useState([]);
     const [animationQueue, setAnimationQueue] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    
+    // Check if we have all required data
+    useEffect(() => {
+        if (leafData && rootData && totalVotes !== undefined) {
+            setIsLoading(false);
+        }
+    }, [leafData, rootData, totalVotes]);
     const previousLeafDataRef = useRef({});
     const previousRootDataRef = useRef({});
     
@@ -143,6 +152,10 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
             });
         };
     }, []);
+
+    if (isLoading) {
+        return <LoadingTree />;
+    }
 
     return (
         <div className="
