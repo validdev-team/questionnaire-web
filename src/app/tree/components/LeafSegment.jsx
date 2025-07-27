@@ -4,8 +4,21 @@ import React, { useState, useRef, useEffect } from 'react';
 const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) => {
     const [shouldBounce, setShouldBounce] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [clientCount, setClientCount] = useState(0);
     const animationRef = useRef(null);
-    const previousCountRef = useRef(leaf.currentCount || leaf.initialCount || 0);
+    
+    // Initialize with the actual value immediately, not null
+    const initialCount = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
+    const initialCountRef = useRef(initialCount);
+    const previousCountRef = useRef(initialCount);
+
+    // Update initialCountRef only if it hasn't been set yet
+    useEffect(() => {
+        if (initialCountRef.current === null || initialCountRef.current === 0) {
+            const initialValue = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
+            initialCountRef.current = initialValue;
+        }
+    }, [leaf]);
 
     // Use the count from API data, fallback to initialCount if no currentCount
     const count = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
@@ -17,7 +30,6 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
             
             // Only bounce if this event is for this specific leaf
             if (type === 'leaf' && elementId === leaf.id) {
-                console.log(`Leaf ${leaf.id} received bounce event`);
                 triggerBounce();
                 // Note: We don't trigger the individual leaf animation here anymore
                 // The main water animation is handled by TreeContainer
@@ -45,6 +57,7 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
     // Trigger bounce animation (only called by custom event now)
     const triggerBounce = () => {
         setShouldBounce(true);
+        setClientCount(prevCount => prevCount + 1);
     };
 
     const handleBounceEnd = () => {
@@ -63,6 +76,9 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
     const handleAnimationEnd = () => {
         setIsAnimating(false);
     };
+
+    // Calculate the display count - use initialCountRef.current with fallback
+    const displayCount = (initialCountRef.current || 0) + clientCount;
 
     return (
         <div
@@ -102,7 +118,7 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
                             {leaf.question}
                         </div>
                         <div className="text-[6px] font-bold">
-                            {count}
+                            {displayCount}
                         </div>
                     </div>
 
