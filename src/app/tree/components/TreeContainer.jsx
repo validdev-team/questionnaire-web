@@ -33,7 +33,7 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
 
             // Schedule the bounce animation to trigger when water reaches the element
             const bounceTimeout = setTimeout(() => {
-                triggerElementBounce(nextAnimation.elementId, nextAnimation.type);
+                triggerElementBounce(nextAnimation.elementId, nextAnimation.type, nextAnimation.netCountChanged);
             }, WATER_TIMING[nextAnimation.type]);
 
             // Store the timeout ID so we can clear it if needed
@@ -57,12 +57,13 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
     }, [animationQueue, activeAnimations]);
 
     // Function to trigger bounce on specific leaf/root
-    const triggerElementBounce = (elementId, type) => {
+    const triggerElementBounce = (elementId, type, netCountChanged) => {
         // Create a custom event to communicate with individual components
         const event = new CustomEvent('triggerBounce', {
             detail: { 
                 elementId, 
                 type,
+                netCountChanged,
                 timestamp: Date.now() // Add timestamp for debugging
             }
         });
@@ -79,12 +80,13 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         leafData.forEach(leaf => {
             const previousCount = previousLeafDataRef.current[leaf.id]?.currentCount || 0;
             if (leaf.currentCount > previousCount && previousCount > 0) {
-                // Add to queue with unique ID
+                // Add to queue with unique ID and netCountChanged
                 newAnimations.push({
                     id: `leaf-${leaf.id}-${Date.now()}-${Math.random()}`,
                     file: leaf.animationFile,
                     type: 'leaf',
                     elementId: leaf.id,
+                    netCountChanged: leaf.netCountChanged,
                     createdAt: Date.now()
                 });
             }
@@ -94,12 +96,13 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         rootData.forEach(root => {
             const previousCount = previousRootDataRef.current[root.id]?.currentCount || 0;
             if (root.currentCount > previousCount && previousCount > 0) {
-                // Add to queue with unique ID
+                // Add to queue with unique ID and netCountChanged
                 newAnimations.push({
                     id: `root-${root.id}-${Date.now()}-${Math.random()}`,
                     file: root.animationFile,
                     type: 'root',
                     elementId: root.id,
+                    netCountChanged: root.netCountChanged,
                     createdAt: Date.now()
                 });
             }
@@ -250,7 +253,7 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                             <div>Current animations:</div>
                             {activeAnimations.map(anim => (
                                 <div key={anim.id} className="text-yellow-300">
-                                    {anim.type} {anim.elementId}
+                                    {anim.type} {anim.elementId} (+{anim.netCountChanged})
                                 </div>
                             ))}
                         </div>

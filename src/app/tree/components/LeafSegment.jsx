@@ -26,11 +26,11 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
     // Listen for custom bounce events from TreeContainer
     useEffect(() => {
         const handleBounceEvent = (event) => {
-            const { elementId, type } = event.detail;
+            const { elementId, type, netCountChanged } = event.detail;
             
             // Only bounce if this event is for this specific leaf
             if (type === 'leaf' && elementId === leaf.id) {
-                triggerBounce();
+                triggerBounce(netCountChanged || 1);
                 // Note: We don't trigger the individual leaf animation here anymore
                 // The main water animation is handled by TreeContainer
             }
@@ -54,10 +54,10 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
         leafScale = 2.6;
     }
 
-    // Trigger bounce animation (only called by custom event now)
-    const triggerBounce = () => {
+    // Trigger bounce animation and increment client count by netCountChanged (only called by custom event now)
+    const triggerBounce = (netCountChanged = 1) => {
         setShouldBounce(true);
-        setClientCount(prevCount => prevCount + 1);
+        setClientCount(prevCount => prevCount + netCountChanged);
     };
 
     const handleBounceEnd = () => {

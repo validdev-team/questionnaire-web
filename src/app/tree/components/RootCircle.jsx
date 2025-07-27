@@ -26,11 +26,11 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
     // Listen for custom bounce events from TreeContainer
     useEffect(() => {
         const handleBounceEvent = (event) => {
-            const { elementId, type } = event.detail;
+            const { elementId, type, netCountChanged } = event.detail;
             
             // Only bounce if this event is for this specific root
             if (type === 'root' && elementId === root.id) {
-                triggerBounce();
+                triggerBounce(netCountChanged || 1);
                 // Note: We don't trigger the individual root animation here anymore
                 // The main water animation is handled by TreeContainer
             }
@@ -54,10 +54,10 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
         rootScale = 1;
     }
 
-    // Trigger bounce animation and increment client count (only called by custom event now)
-    const triggerBounce = () => {
+    // Trigger bounce animation and increment client count by netCountChanged (only called by custom event now)
+    const triggerBounce = (netCountChanged = 1) => {
         setIsBouncing(true);
-        setClientCount(prevCount => prevCount + 1);
+        setClientCount(prevCount => prevCount + netCountChanged);
         // Reset bounce after animation duration
         setTimeout(() => setIsBouncing(false), 500); // Increased to match leaf duration
     };

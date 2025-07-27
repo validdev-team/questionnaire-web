@@ -156,7 +156,7 @@ const TreePage = () => {
         };
     }, [results]);
 
-    // Memoize leaf data with counts
+    // Memoize leaf data with counts and netCountChanged
     const leafDataWithCounts = useMemo(() => {
         return mergedLeafConfig.map((leaf, index) => {
             const apiKey = `q1c${index + 1}`;
@@ -165,16 +165,18 @@ const TreePage = () => {
                 ? (previousResults[apiKey] || 0) 
                 : currentCount;
             const hasNewVote = !isInitialLoad && currentCount > previousCount;
+            const netCountChanged = currentCount - previousCount;
             
             return {
                 ...leaf,
                 currentCount,
-                hasNewVote
+                hasNewVote,
+                netCountChanged
             };
         });
     }, [mergedLeafConfig, calculatedValues.effectiveResults, previousResults, isInitialLoad]);
 
-    // Memoize root data with counts
+    // Memoize root data with counts and netCountChanged
     const rootDataWithCounts = useMemo(() => {
         return mergedRootConfig.map((root, index) => {
             const apiKey = `q2c${index + 1}`;
@@ -183,11 +185,13 @@ const TreePage = () => {
                 ? (previousResults[apiKey] || 0) 
                 : currentCount;
             const hasNewVote = !isInitialLoad && currentCount > previousCount;
+            const netCountChanged = currentCount - previousCount;
             
             return {
                 ...root,
                 currentCount,
-                hasNewVote
+                hasNewVote,
+                netCountChanged
             };
         });
     }, [mergedRootConfig, calculatedValues.effectiveResults, previousResults, isInitialLoad]);
