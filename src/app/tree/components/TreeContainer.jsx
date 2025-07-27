@@ -78,15 +78,17 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
 
         // Check leaves for new votes
         leafData.forEach(leaf => {
-            const previousCount = previousLeafDataRef.current[leaf.id]?.currentCount || 0;
-            if (leaf.currentCount > previousCount && previousCount > 0) {
-                // Add to queue with unique ID and netCountChanged
+            const previousCount = previousLeafDataRef.current[leaf.id]?.currentCount ?? leaf.currentCount;
+            if (leaf.currentCount > previousCount) {
+                // Calculate the actual change between current and previous count
+                const actualChange = leaf.currentCount - previousCount;
+                // Add to queue with unique ID and actual change count
                 newAnimations.push({
                     id: `leaf-${leaf.id}-${Date.now()}-${Math.random()}`,
                     file: leaf.animationFile,
                     type: 'leaf',
                     elementId: leaf.id,
-                    netCountChanged: leaf.netCountChanged,
+                    netCountChanged: actualChange, // Use the direct difference
                     createdAt: Date.now()
                 });
             }
@@ -94,15 +96,17 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
 
         // Check roots for new votes
         rootData.forEach(root => {
-            const previousCount = previousRootDataRef.current[root.id]?.currentCount || 0;
-            if (root.currentCount > previousCount && previousCount > 0) {
-                // Add to queue with unique ID and netCountChanged
+            const previousCount = previousRootDataRef.current[root.id]?.currentCount ?? root.currentCount;
+            if (root.currentCount > previousCount) {
+                // Calculate the actual change between current and previous count
+                const actualChange = root.currentCount - previousCount;
+                // Add to queue with unique ID and actual change count
                 newAnimations.push({
                     id: `root-${root.id}-${Date.now()}-${Math.random()}`,
                     file: root.animationFile,
                     type: 'root',
                     elementId: root.id,
-                    netCountChanged: root.netCountChanged,
+                    netCountChanged: actualChange, // Use the direct difference
                     createdAt: Date.now()
                 });
             }

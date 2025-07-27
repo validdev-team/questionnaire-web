@@ -163,7 +163,7 @@ const TreePage = () => {
             const currentCount = calculatedValues.effectiveResults[apiKey] || 0;
             const previousCount = (!isInitialLoad && previousResults) 
                 ? (previousResults[apiKey] || 0) 
-                : currentCount;
+                : 0; // Use 0 for initial load, not currentCount
             const hasNewVote = !isInitialLoad && currentCount > previousCount;
             const netCountChanged = currentCount - previousCount;
             
@@ -183,7 +183,7 @@ const TreePage = () => {
             const currentCount = calculatedValues.effectiveResults[apiKey] || 0;
             const previousCount = (!isInitialLoad && previousResults) 
                 ? (previousResults[apiKey] || 0) 
-                : currentCount;
+                : 0; // Use 0 for initial load, not currentCount
             const hasNewVote = !isInitialLoad && currentCount > previousCount;
             const netCountChanged = currentCount - previousCount;
             
