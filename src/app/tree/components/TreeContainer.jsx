@@ -30,11 +30,9 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
             setActiveAnimations(prev => [...prev, nextAnimation]);
 
             // Start the water animation immediately
-            console.log(`Starting water animation for ${nextAnimation.type} ${nextAnimation.elementId}`);
 
             // Schedule the bounce animation to trigger when water reaches the element
             const bounceTimeout = setTimeout(() => {
-                console.log(`Triggering bounce for ${nextAnimation.type} ${nextAnimation.elementId}`);
                 triggerElementBounce(nextAnimation.elementId, nextAnimation.type);
             }, WATER_TIMING[nextAnimation.type]);
 
@@ -69,7 +67,6 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
             }
         });
         window.dispatchEvent(event);
-        console.log(`Bounce event dispatched for ${type} ${elementId}`);
     };
 
     // Check for new votes and add animations to queue
@@ -82,7 +79,6 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         leafData.forEach(leaf => {
             const previousCount = previousLeafDataRef.current[leaf.id]?.currentCount || 0;
             if (leaf.currentCount > previousCount && previousCount > 0) {
-                console.log(`New vote detected for leaf ${leaf.id}: ${previousCount} → ${leaf.currentCount}`);
                 // Add to queue with unique ID
                 newAnimations.push({
                     id: `leaf-${leaf.id}-${Date.now()}-${Math.random()}`,
@@ -98,7 +94,6 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         rootData.forEach(root => {
             const previousCount = previousRootDataRef.current[root.id]?.currentCount || 0;
             if (root.currentCount > previousCount && previousCount > 0) {
-                console.log(`New vote detected for root ${root.id}: ${previousCount} → ${root.currentCount}`);
                 // Add to queue with unique ID
                 newAnimations.push({
                     id: `root-${root.id}-${Date.now()}-${Math.random()}`,
@@ -112,7 +107,6 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
 
         // Add new animations to queue
         if (newAnimations.length > 0) {
-            console.log(`Adding ${newAnimations.length} animations to queue`);
             setAnimationQueue(prev => [...prev, ...newAnimations]);
         }
 
@@ -187,13 +181,10 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                         playsInline
                         autoPlay
                         onLoadedData={() => {
-                            console.log(`Water animation loaded for ${anim.type} ${anim.elementId}`);
                         }}
                         onPlay={() => {
-                            console.log(`Water animation started for ${anim.type} ${anim.elementId}`);
                         }}
                         onEnded={() => {
-                            console.log(`Water animation ended for ${anim.type} ${anim.elementId}`);
                             setActiveAnimations(prev => {
                                 const updated = prev.filter(a => a.id !== anim.id);
                                 // Clear timeouts when video ends

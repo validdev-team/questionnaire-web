@@ -17,7 +17,6 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
             
             // Only bounce if this event is for this specific root
             if (type === 'root' && elementId === root.id) {
-                console.log(`Root ${root.id} received bounce event`);
                 triggerBounce();
                 // Note: We don't trigger the individual root animation here anymore
                 // The main water animation is handled by TreeContainer
