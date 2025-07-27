@@ -10,20 +10,31 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
     // Use the count from API data, fallback to initialCount if no currentCount
     const count = root.currentCount !== undefined ? root.currentCount : root.initialCount || 0;
 
-    // Check for new votes and trigger animations
+    // Listen for custom bounce events from TreeContainer
     useEffect(() => {
-        // Don't trigger animations on initial load or if no previous data
-        if (isInitialLoad || previousCountRef.current === 0) {
-            previousCountRef.current = count;
-            return;
-        }
+        const handleBounceEvent = (event) => {
+            const { elementId, type } = event.detail;
+            
+            // Only bounce if this event is for this specific root
+            if (type === 'root' && elementId === root.id) {
+                console.log(`Root ${root.id} received bounce event`);
+                triggerBounce();
+                // Note: We don't trigger the individual root animation here anymore
+                // The main water animation is handled by TreeContainer
+            }
+        };
 
-        if (count > previousCountRef.current) {
-            triggerBounce();
-            triggerAnimation();
-            previousCountRef.current = count;
-        }
-    }, [count, isInitialLoad]);
+        window.addEventListener('triggerBounce', handleBounceEvent);
+        
+        return () => {
+            window.removeEventListener('triggerBounce', handleBounceEvent);
+        };
+    }, [root.id]);
+
+    // Update previous count reference when count changes (but don't trigger animations)
+    useEffect(() => {
+        previousCountRef.current = count;
+    }, [count]);
 
     // Calculate root size based on individual root count relative to total
     let rootScale = Math.min(1 + ((count / (totalRootCount || 1)) * 1.5), 1.2);
@@ -31,13 +42,14 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
         rootScale = 1;
     }
 
-    // Trigger bounce animation
+    // Trigger bounce animation (only called by custom event now)
     const triggerBounce = () => {
         setIsBouncing(true);
         // Reset bounce after animation duration
-        setTimeout(() => setIsBouncing(false), 300);
+        setTimeout(() => setIsBouncing(false), 500); // Increased to match leaf duration
     };
 
+    // These functions are kept for potential future use but not called automatically
     const triggerAnimation = () => {
         if (animationRef.current && !isAnimating) {
             setIsAnimating(true);
@@ -62,7 +74,7 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
                 zIndex: root.zIndex,
                 transform: `scale(${finalScale})`,
                 transformOrigin: 'center center',
-                transition: isBouncing ? 'transform 0.5s bounce-custom' : 'transform 0.2s ease-out',
+                transition: isBouncing ? 'transform 0.5s ease-out' : 'transform 0.2s ease-out',
             }}
         >
             {/* Static SVG Circle */}
@@ -86,23 +98,8 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
                     {root.question}
                 </div>
 
-                {/* WebM Animation Overlay for individual root */}
-                {isAnimating && root.animationFile && (
-                    <video
-                        ref={animationRef}
-                        className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-80"
-                        style={{
-                            transform: 'scale(1.2)',
-                            transformOrigin: 'center center'
-                        }}
-                        muted
-                        playsInline
-                        onEnded={handleAnimationEnd}
-                    >
-                        <source src={`/animation/${root.animationFile}`} type="video/webm" />
-                        <source src={`/animation/${root.animationFile.replace('.webm', '.mp4')}`} type="video/mp4" />
-                    </video>
-                )}
+                {/* Individual root animation is removed since TreeContainer handles the main animation */}
+                {/* We could add this back if you want both animations, but typically you'd want one or the other */}
             </div>
         </div>
     );

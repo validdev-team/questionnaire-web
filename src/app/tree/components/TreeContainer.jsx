@@ -11,8 +11,14 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
     const previousRootDataRef = useRef({});
     
     // Configuration for animation limits
-    const MAX_CONCURRENT_ANIMATIONS = 3; // Maximum animations playing at once
+    const MAX_CONCURRENT_ANIMATIONS = 4; // Maximum animations playing at once
     const ANIMATION_DURATION = 2000; // Duration in milliseconds
+    
+    // Timing configuration for when water reaches different elements
+    const WATER_TIMING = {
+        leaf: 1200, // Time when water reaches leaves (adjust based on your animation)
+        root: 800   // Time when water reaches roots (adjust based on your animation)
+    };
 
     // Process animation queue
     useEffect(() => {
@@ -23,12 +29,48 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
             setAnimationQueue(prev => prev.slice(1));
             setActiveAnimations(prev => [...prev, nextAnimation]);
 
+            // Start the water animation immediately
+            console.log(`Starting water animation for ${nextAnimation.type} ${nextAnimation.elementId}`);
+
+            // Schedule the bounce animation to trigger when water reaches the element
+            const bounceTimeout = setTimeout(() => {
+                console.log(`Triggering bounce for ${nextAnimation.type} ${nextAnimation.elementId}`);
+                triggerElementBounce(nextAnimation.elementId, nextAnimation.type);
+            }, WATER_TIMING[nextAnimation.type]);
+
+            // Store the timeout ID so we can clear it if needed
+            nextAnimation.bounceTimeoutId = bounceTimeout;
+
             // Auto-remove animation after it finishes
-            setTimeout(() => {
-                setActiveAnimations(prev => prev.filter(a => a.id !== nextAnimation.id));
+            const cleanupTimeout = setTimeout(() => {
+                setActiveAnimations(prev => {
+                    const updated = prev.filter(a => a.id !== nextAnimation.id);
+                    // Clear the bounce timeout if animation is removed early
+                    if (nextAnimation.bounceTimeoutId) {
+                        clearTimeout(nextAnimation.bounceTimeoutId);
+                    }
+                    return updated;
+                });
             }, ANIMATION_DURATION);
+
+            // Store cleanup timeout ID
+            nextAnimation.cleanupTimeoutId = cleanupTimeout;
         }
     }, [animationQueue, activeAnimations]);
+
+    // Function to trigger bounce on specific leaf/root
+    const triggerElementBounce = (elementId, type) => {
+        // Create a custom event to communicate with individual components
+        const event = new CustomEvent('triggerBounce', {
+            detail: { 
+                elementId, 
+                type,
+                timestamp: Date.now() // Add timestamp for debugging
+            }
+        });
+        window.dispatchEvent(event);
+        console.log(`Bounce event dispatched for ${type} ${elementId}`);
+    };
 
     // Check for new votes and add animations to queue
     useEffect(() => {
@@ -40,12 +82,14 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         leafData.forEach(leaf => {
             const previousCount = previousLeafDataRef.current[leaf.id]?.currentCount || 0;
             if (leaf.currentCount > previousCount && previousCount > 0) {
-                // Add to queue instead of triggering immediately
+                console.log(`New vote detected for leaf ${leaf.id}: ${previousCount} → ${leaf.currentCount}`);
+                // Add to queue with unique ID
                 newAnimations.push({
-                    id: `${leaf.id}-${Date.now()}-${Math.random()}`,
+                    id: `leaf-${leaf.id}-${Date.now()}-${Math.random()}`,
                     file: leaf.animationFile,
                     type: 'leaf',
-                    elementId: leaf.id
+                    elementId: leaf.id,
+                    createdAt: Date.now()
                 });
             }
         });
@@ -54,18 +98,21 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         rootData.forEach(root => {
             const previousCount = previousRootDataRef.current[root.id]?.currentCount || 0;
             if (root.currentCount > previousCount && previousCount > 0) {
-                // Add to queue instead of triggering immediately
+                console.log(`New vote detected for root ${root.id}: ${previousCount} → ${root.currentCount}`);
+                // Add to queue with unique ID
                 newAnimations.push({
-                    id: `${root.id}-${Date.now()}-${Math.random()}`,
+                    id: `root-${root.id}-${Date.now()}-${Math.random()}`,
                     file: root.animationFile,
                     type: 'root',
-                    elementId: root.id
+                    elementId: root.id,
+                    createdAt: Date.now()
                 });
             }
         });
 
         // Add new animations to queue
         if (newAnimations.length > 0) {
+            console.log(`Adding ${newAnimations.length} animations to queue`);
             setAnimationQueue(prev => [...prev, ...newAnimations]);
         }
 
@@ -82,7 +129,19 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
 
     }, [leafData, rootData, isInitialLoad]);
 
-    // Trigger animation on tree trunk - removed, now handled by queue system
+    // Cleanup timeouts on unmount
+    useEffect(() => {
+        return () => {
+            activeAnimations.forEach(anim => {
+                if (anim.bounceTimeoutId) {
+                    clearTimeout(anim.bounceTimeoutId);
+                }
+                if (anim.cleanupTimeoutId) {
+                    clearTimeout(anim.cleanupTimeoutId);
+                }
+            });
+        };
+    }, []);
 
     return (
         <div className="
@@ -127,8 +186,25 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                         muted
                         playsInline
                         autoPlay
+                        onLoadedData={() => {
+                            console.log(`Water animation loaded for ${anim.type} ${anim.elementId}`);
+                        }}
+                        onPlay={() => {
+                            console.log(`Water animation started for ${anim.type} ${anim.elementId}`);
+                        }}
                         onEnded={() => {
-                            setActiveAnimations(prev => prev.filter(a => a.id !== anim.id));
+                            console.log(`Water animation ended for ${anim.type} ${anim.elementId}`);
+                            setActiveAnimations(prev => {
+                                const updated = prev.filter(a => a.id !== anim.id);
+                                // Clear timeouts when video ends
+                                if (anim.bounceTimeoutId) {
+                                    clearTimeout(anim.bounceTimeoutId);
+                                }
+                                if (anim.cleanupTimeoutId) {
+                                    clearTimeout(anim.cleanupTimeoutId);
+                                }
+                                return updated;
+                            });
                         }}
                     >
                         <source src={`/animation/${anim.file}`} type="video/webm" />
@@ -178,6 +254,16 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                     <div>Queued Animations: {animationQueue.length}</div>
                     <div>Total Leaf Count: {totalLeafCount}</div>
                     <div>Total Root Count: {totalRootCount}</div>
+                    {activeAnimations.length > 0 && (
+                        <div className="mt-2 text-xs">
+                            <div>Current animations:</div>
+                            {activeAnimations.map(anim => (
+                                <div key={anim.id} className="text-yellow-300">
+                                    {anim.type} {anim.elementId}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

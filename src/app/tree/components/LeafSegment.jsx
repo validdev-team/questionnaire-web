@@ -10,20 +10,31 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
     // Use the count from API data, fallback to initialCount if no currentCount
     const count = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
 
-    // Check for new votes and trigger animations
+    // Listen for custom bounce events from TreeContainer
     useEffect(() => {
-        // Don't trigger animations on initial load or if no previous data
-        if (isInitialLoad || previousCountRef.current === 0) {
-            previousCountRef.current = count;
-            return;
-        }
+        const handleBounceEvent = (event) => {
+            const { elementId, type } = event.detail;
+            
+            // Only bounce if this event is for this specific leaf
+            if (type === 'leaf' && elementId === leaf.id) {
+                console.log(`Leaf ${leaf.id} received bounce event`);
+                triggerBounce();
+                // Note: We don't trigger the individual leaf animation here anymore
+                // The main water animation is handled by TreeContainer
+            }
+        };
 
-        if (count > previousCountRef.current) {
-            triggerBounce();
-            triggerAnimation();
-            previousCountRef.current = count;
-        }
-    }, [count, isInitialLoad]);
+        window.addEventListener('triggerBounce', handleBounceEvent);
+        
+        return () => {
+            window.removeEventListener('triggerBounce', handleBounceEvent);
+        };
+    }, [leaf.id]);
+
+    // Update previous count reference when count changes (but don't trigger animations)
+    useEffect(() => {
+        previousCountRef.current = count;
+    }, [count]);
 
     // Calculate leaf size based on TOTAL leaf count across all leaves
     let leafScale = Math.min(2.6 + ((count / (totalLeafCount || 1)) * 1.5), 3.6);
@@ -31,7 +42,7 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
         leafScale = 2.6;
     }
 
-    // Trigger bounce animation
+    // Trigger bounce animation (only called by custom event now)
     const triggerBounce = () => {
         setShouldBounce(true);
     };
@@ -40,7 +51,7 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
         setShouldBounce(false);
     };
 
-    // Trigger WebM animation when vote is received
+    // These functions are kept for potential future use but not called automatically
     const triggerAnimation = () => {
         if (animationRef.current && !isAnimating) {
             setIsAnimating(true);
@@ -49,7 +60,6 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
         }
     };
 
-    // Reset animation state when WebM finishes playing
     const handleAnimationEnd = () => {
         setIsAnimating(false);
     };
@@ -96,23 +106,8 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
                         </div>
                     </div>
 
-                    {/* WebM Animation Overlay for individual leaf */}
-                    {isAnimating && leaf.animationFile && (
-                        <video
-                            ref={animationRef}
-                            className="absolute inset-0 w-full h-full object-contain pointer-events-none opacity-80"
-                            style={{
-                                transform: 'scale(1.2)',
-                                transformOrigin: 'center center'
-                            }}
-                            muted
-                            playsInline
-                            onEnded={handleAnimationEnd}
-                        >
-                            <source src={`/animation/${leaf.animationFile}`} type="video/webm" />
-                            <source src={`/animation/${leaf.animationFile.replace('.webm', '.mp4')}`} type="video/mp4" />
-                        </video>
-                    )}
+                    {/* Individual leaf animation is removed since TreeContainer handles the main animation */}
+                    {/* We could add this back if you want both animations, but typically you'd want one or the other */}
                 </div>
             </div>
         </div>
