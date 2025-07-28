@@ -4,22 +4,22 @@ import React, { useState, useRef, useEffect } from 'react';
 const LeafSegment = ({ leaf, totalLeafCount }) => {
     const [shouldBounce, setShouldBounce] = useState(false);
     const [clientCount, setClientCount] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
     
-    // Initialize with null - will be set when data is available
-    const initialCountRef = useRef(null);
+    // Initialize with the actual value immediately, not null
+    const initialCount = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
+    const initialCountRef = useRef(initialCount);
 
-    // Update initialCountRef and loading state when leaf data is available
+    // Update initialCountRef only if it hasn't been set yet
     useEffect(() => {
-        // Check if we have a valid initialCount (number) - this comes from TreePage
-        if (typeof leaf.initialCount === 'number') {
-            initialCountRef.current = leaf.initialCount;
-            setIsLoading(false);
-        } else {
-            // Still loading - no valid initialCount available yet
-            setIsLoading(true);
+        if (initialCountRef.current === null || initialCountRef.current === 0) {
+            
+            const initialValue = leaf.initialCount || 99;
+            initialCountRef.current = initialValue;
         }
-    }, [leaf.initialCount]);
+    }, [leaf]);
+
+    // Use the count from API data, fallback to initialCount if no currentCount
+    const count = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
 
     // Listen for custom bounce events from TreeContainer
     useEffect(() => {
@@ -40,7 +40,6 @@ const LeafSegment = ({ leaf, totalLeafCount }) => {
     }, [leaf.id]);
 
     // Calculate leaf size based on TOTAL leaf count across all leaves
-    const count = leaf.currentCount !== undefined ? leaf.currentCount : (leaf.initialCount || 0);
     let leafScale = Math.min(2.6 + ((count / (totalLeafCount || 1)) * 1.5), 3.6);
     if (!leafScale || isNaN(leafScale)) {
         leafScale = 2.6;
@@ -58,43 +57,6 @@ const LeafSegment = ({ leaf, totalLeafCount }) => {
 
     // Calculate the display count - use initialCountRef.current with fallback
     const displayCount = (initialCountRef.current || 0) + clientCount;
-
-    // Show loading state if data isn't ready
-    if (isLoading) {
-        return (
-            <div
-                className="absolute transition-transform"
-                style={{
-                    left: `${leaf.x}px`,
-                    top: `${leaf.y}px`,
-                    zIndex: leaf.zIndex,
-                    transform: `scale(${leafScale})`,
-                    transformOrigin: 'center center',
-                }}
-            >
-                <div className="relative w-20 h-16">
-                    <img
-                        src={`/svg/${leaf.svgFile}`}
-                        alt={`Leaf ${leaf.id}`}
-                        className="w-full h-full object-contain opacity-50"
-                        onError={(e) => {
-                            console.error(`Failed to load leaf SVG: ${leaf.svgFile}`);
-                            e.target.style.display = 'none';
-                        }}
-                    />
-                    {/* Loading indicator */}
-                    <div className="absolute inset-0 top-2 flex flex-col items-center justify-center text-white text-center px-1">
-                        <div className="text-[4px] font-medium leading-tight mb-[1px] max-w-[70%] break-words">
-                            {leaf.question}
-                        </div>
-                        <div className="text-[6px] font-bold animate-pulse">
-                            ...
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div
