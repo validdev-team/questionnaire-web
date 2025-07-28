@@ -19,15 +19,16 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
     const previousLeafDataRef = useRef({});
     const previousRootDataRef = useRef({});
     
-    // Configuration for animation limits - INCREASED FOR BETTER PERFORMANCE
-    const MAX_CONCURRENT_ANIMATIONS = 4; // Increased from 4
-    const ANIMATION_DURATION = 1000; // Reduced from 2000ms
-    const QUEUE_PROCESS_INTERVAL = 300; // Process queue every 300ms instead of on every change
+    // Configuration for animation limits
+    const MAX_CONCURRENT_ANIMATIONS = 4;
+    const ANIMATION_DURATION = 1000;
+    const QUEUE_PROCESS_INTERVAL = 200; // lowered for smoother continuous flow
+    const STAGGER_DELAY = 400; // Time between each animation start (200ms)
     
     // Timing configuration for when water reaches different elements
     const WATER_TIMING = {
-        leaf: 600, // Reduced from 900ms
-        root: 500   // Reduced from 800ms
+        leaf: 600,
+        root: 500
     };
 
     // QUEUE OPTIMIZATION: Merge animations with same elementId and type
@@ -54,7 +55,7 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         return Object.values(grouped).filter(anim => anim.netCountChanged > 0);
     };
 
-    // FASTER QUEUE PROCESSING: Process multiple animations at once
+    // STAGGERED QUEUE PROCESSING: Start animations at different times for continuous flow
     const processQueueBatch = () => {
         if (animationQueue.length === 0) return;
         
@@ -72,33 +73,40 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         // Update queue with remaining items
         setAnimationQueue(remainingQueue);
         
-        // Process the batch
-        batchToProcess.forEach(animation => {
-            // Add to active animations
-            setActiveAnimations(prev => [...prev, animation]);
+        // STAGGERED START: Process animations with delays for continuous flow
+        const STAGGER_DELAY = 400; // 200ms between each animation start
+        
+        batchToProcess.forEach((animation, index) => {
+            const startDelay = index * STAGGER_DELAY;
+            
+            // Delay the start of each animation
+            setTimeout(() => {
+                // Add to active animations
+                setActiveAnimations(prev => [...prev, animation]);
 
-            // Schedule the bounce animation to trigger when water reaches the element
-            const bounceTimeout = setTimeout(() => {
-                triggerElementBounce(animation.elementId, animation.type, animation.netCountChanged);
-            }, WATER_TIMING[animation.type]);
+                // Schedule the bounce animation to trigger when water reaches the element
+                const bounceTimeout = setTimeout(() => {
+                    triggerElementBounce(animation.elementId, animation.type, animation.netCountChanged);
+                }, WATER_TIMING[animation.type]);
 
-            // Store the timeout ID
-            animation.bounceTimeoutId = bounceTimeout;
+                // Store the timeout ID
+                animation.bounceTimeoutId = bounceTimeout;
 
-            // Auto-remove animation after it finishes
-            const cleanupTimeout = setTimeout(() => {
-                setActiveAnimations(prev => {
-                    const updated = prev.filter(a => a.id !== animation.id);
-                    // Clear the bounce timeout if animation is removed early
-                    if (animation.bounceTimeoutId) {
-                        clearTimeout(animation.bounceTimeoutId);
-                    }
-                    return updated;
-                });
-            }, ANIMATION_DURATION);
+                // Auto-remove animation after it finishes
+                const cleanupTimeout = setTimeout(() => {
+                    setActiveAnimations(prev => {
+                        const updated = prev.filter(a => a.id !== animation.id);
+                        // Clear the bounce timeout if animation is removed early
+                        if (animation.bounceTimeoutId) {
+                            clearTimeout(animation.bounceTimeoutId);
+                        }
+                        return updated;
+                    });
+                }, ANIMATION_DURATION);
 
-            // Store cleanup timeout ID
-            animation.cleanupTimeoutId = cleanupTimeout;
+                // Store cleanup timeout ID
+                animation.cleanupTimeoutId = cleanupTimeout;
+            }, startDelay);
         });
     };
 
@@ -301,7 +309,7 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                     <div>Queued Animations: {animationQueue.length}</div>
                     <div>Total Leaf Count: {totalLeafCount}</div>
                     <div>Total Root Count: {totalRootCount}</div>
-                    <div className="text-yellow-300">Queue Process Interval: {QUEUE_PROCESS_INTERVAL}ms</div>
+                    <div className="text-yellow-300">Queue Process: {QUEUE_PROCESS_INTERVAL}ms | Stagger: {STAGGER_DELAY}ms</div>
                     {activeAnimations.length > 0 && (
                         <div className="mt-2 text-xs">
                             <div>Current animations:</div>
