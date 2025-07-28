@@ -15,53 +15,97 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
             setIsLoading(false);
         }
     }, [leafData, rootData, totalVotes]);
+    
     const previousLeafDataRef = useRef({});
     const previousRootDataRef = useRef({});
     
-    // Configuration for animation limits
-    const MAX_CONCURRENT_ANIMATIONS = 4; // Maximum animations playing at once
-    const ANIMATION_DURATION = 2000; // Duration in milliseconds
+    // Configuration for animation limits - INCREASED FOR BETTER PERFORMANCE
+    const MAX_CONCURRENT_ANIMATIONS = 4; // Increased from 4
+    const ANIMATION_DURATION = 1000; // Reduced from 2000ms
+    const QUEUE_PROCESS_INTERVAL = 300; // Process queue every 300ms instead of on every change
     
     // Timing configuration for when water reaches different elements
     const WATER_TIMING = {
-        leaf: 900, // Time when water reaches leaves (adjust based on your animation)
-        root: 800   // Time when water reaches roots (adjust based on your animation)
+        leaf: 600, // Reduced from 900ms
+        root: 500   // Reduced from 800ms
     };
 
-    // Process animation queue
-    useEffect(() => {
-        if (animationQueue.length > 0 && activeAnimations.length < MAX_CONCURRENT_ANIMATIONS) {
-            const nextAnimation = animationQueue[0];
-            
-            // Move from queue to active
-            setAnimationQueue(prev => prev.slice(1));
-            setActiveAnimations(prev => [...prev, nextAnimation]);
+    // QUEUE OPTIMIZATION: Merge animations with same elementId and type
+    const optimizeQueue = (queue) => {
+        if (queue.length <= 1) return queue;
+        
+        // Group by elementId and type
+        const grouped = {};
+        
+        queue.forEach(animation => {
+            const key = `${animation.type}-${animation.elementId}`;
+            if (!grouped[key]) {
+                grouped[key] = {
+                    ...animation,
+                    netCountChanged: 0,
+                    mergedAnimations: []
+                };
+            }
+            grouped[key].netCountChanged += animation.netCountChanged;
+            grouped[key].mergedAnimations.push(animation.id);
+        });
+        
+        // Convert back to array and filter out zero changes
+        return Object.values(grouped).filter(anim => anim.netCountChanged > 0);
+    };
 
-            // Start the water animation immediately
+    // FASTER QUEUE PROCESSING: Process multiple animations at once
+    const processQueueBatch = () => {
+        if (animationQueue.length === 0) return;
+        
+        // Optimize queue first
+        const optimizedQueue = optimizeQueue(animationQueue);
+        
+        // Calculate how many we can process
+        const availableSlots = MAX_CONCURRENT_ANIMATIONS - activeAnimations.length;
+        if (availableSlots <= 0) return;
+        
+        // Take up to availableSlots animations
+        const batchToProcess = optimizedQueue.slice(0, availableSlots);
+        const remainingQueue = optimizedQueue.slice(availableSlots);
+        
+        // Update queue with remaining items
+        setAnimationQueue(remainingQueue);
+        
+        // Process the batch
+        batchToProcess.forEach(animation => {
+            // Add to active animations
+            setActiveAnimations(prev => [...prev, animation]);
 
             // Schedule the bounce animation to trigger when water reaches the element
             const bounceTimeout = setTimeout(() => {
-                triggerElementBounce(nextAnimation.elementId, nextAnimation.type, nextAnimation.netCountChanged);
-            }, WATER_TIMING[nextAnimation.type]);
+                triggerElementBounce(animation.elementId, animation.type, animation.netCountChanged);
+            }, WATER_TIMING[animation.type]);
 
-            // Store the timeout ID so we can clear it if needed
-            nextAnimation.bounceTimeoutId = bounceTimeout;
+            // Store the timeout ID
+            animation.bounceTimeoutId = bounceTimeout;
 
             // Auto-remove animation after it finishes
             const cleanupTimeout = setTimeout(() => {
                 setActiveAnimations(prev => {
-                    const updated = prev.filter(a => a.id !== nextAnimation.id);
+                    const updated = prev.filter(a => a.id !== animation.id);
                     // Clear the bounce timeout if animation is removed early
-                    if (nextAnimation.bounceTimeoutId) {
-                        clearTimeout(nextAnimation.bounceTimeoutId);
+                    if (animation.bounceTimeoutId) {
+                        clearTimeout(animation.bounceTimeoutId);
                     }
                     return updated;
                 });
             }, ANIMATION_DURATION);
 
             // Store cleanup timeout ID
-            nextAnimation.cleanupTimeoutId = cleanupTimeout;
-        }
+            animation.cleanupTimeoutId = cleanupTimeout;
+        });
+    };
+
+    // Process queue at regular intervals instead of on every change
+    useEffect(() => {
+        const interval = setInterval(processQueueBatch, QUEUE_PROCESS_INTERVAL);
+        return () => clearInterval(interval);
     }, [animationQueue, activeAnimations]);
 
     // Function to trigger bounce on specific leaf/root
@@ -72,13 +116,13 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                 elementId, 
                 type,
                 netCountChanged,
-                timestamp: Date.now() // Add timestamp for debugging
+                timestamp: Date.now()
             }
         });
         window.dispatchEvent(event);
     };
 
-    // Check for new votes and add animations to queue
+    // OPTIMIZED: Batch new animations before adding to queue
     useEffect(() => {
         if (!leafData || !rootData || isInitialLoad) return;
 
@@ -88,15 +132,13 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         leafData.forEach(leaf => {
             const previousCount = previousLeafDataRef.current[leaf.id]?.currentCount ?? leaf.currentCount;
             if (leaf.currentCount > previousCount) {
-                // Calculate the actual change between current and previous count
                 const actualChange = leaf.currentCount - previousCount;
-                // Add to queue with unique ID and actual change count
                 newAnimations.push({
                     id: `leaf-${leaf.id}-${Date.now()}-${Math.random()}`,
                     file: leaf.animationFile,
                     type: 'leaf',
                     elementId: leaf.id,
-                    netCountChanged: actualChange, // Use the direct difference
+                    netCountChanged: actualChange,
                     createdAt: Date.now()
                 });
             }
@@ -106,23 +148,26 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         rootData.forEach(root => {
             const previousCount = previousRootDataRef.current[root.id]?.currentCount ?? root.currentCount;
             if (root.currentCount > previousCount) {
-                // Calculate the actual change between current and previous count
                 const actualChange = root.currentCount - previousCount;
-                // Add to queue with unique ID and actual change count
                 newAnimations.push({
                     id: `root-${root.id}-${Date.now()}-${Math.random()}`,
                     file: root.animationFile,
                     type: 'root',
                     elementId: root.id,
-                    netCountChanged: actualChange, // Use the direct difference
+                    netCountChanged: actualChange,
                     createdAt: Date.now()
                 });
             }
         });
 
-        // Add new animations to queue
+        // OPTIMIZATION: Pre-merge new animations before adding to queue
         if (newAnimations.length > 0) {
-            setAnimationQueue(prev => [...prev, ...newAnimations]);
+            const preOptimizedAnimations = optimizeQueue(newAnimations);
+            setAnimationQueue(prev => {
+                // Merge with existing queue and optimize again
+                const combinedQueue = [...prev, ...preOptimizedAnimations];
+                return optimizeQueue(combinedQueue);
+            });
         }
 
         // Update previous data refs
@@ -249,19 +294,23 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                 </div>
             ))}
 
-            {/* Debug info - Remove this in production - z-100 (always visible) */}
+            {/* Enhanced Debug info - z-100 (always visible) */}
             {process.env.NODE_ENV === 'development' && (
                 <div className="absolute top-6 left-6 px-4 py-2 bg-black bg-opacity-50 text-white text-sm z-100">
-                    <div>Active Animations: {activeAnimations.length}</div>
+                    <div>Active Animations: {activeAnimations.length}/{MAX_CONCURRENT_ANIMATIONS}</div>
                     <div>Queued Animations: {animationQueue.length}</div>
                     <div>Total Leaf Count: {totalLeafCount}</div>
                     <div>Total Root Count: {totalRootCount}</div>
+                    <div className="text-yellow-300">Queue Process Interval: {QUEUE_PROCESS_INTERVAL}ms</div>
                     {activeAnimations.length > 0 && (
                         <div className="mt-2 text-xs">
                             <div>Current animations:</div>
                             {activeAnimations.map(anim => (
                                 <div key={anim.id} className="text-yellow-300">
                                     {anim.type} {anim.elementId} (+{anim.netCountChanged})
+                                    {anim.mergedAnimations && anim.mergedAnimations.length > 1 && (
+                                        <span className="text-green-300"> [merged {anim.mergedAnimations.length}]</span>
+                                    )}
                                 </div>
                             ))}
                         </div>
