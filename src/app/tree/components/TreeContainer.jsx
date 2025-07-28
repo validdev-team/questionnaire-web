@@ -1,6 +1,5 @@
 "use client"
-import React, { useState, useRef, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { useState, useRef, useEffect } from 'react';
 import LeafSegment from './LeafSegment';
 import RootCircle from './RootCircle';
 import LoadingTree from './LoadingTree';
@@ -25,7 +24,7 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
     
     // Timing configuration for when water reaches different elements
     const WATER_TIMING = {
-        leaf: 1200, // Time when water reaches leaves (adjust based on your animation)
+        leaf: 900, // Time when water reaches leaves (adjust based on your animation)
         root: 800   // Time when water reaches roots (adjust based on your animation)
     };
 
@@ -200,10 +199,6 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                         muted
                         playsInline
                         autoPlay
-                        onLoadedData={() => {
-                        }}
-                        onPlay={() => {
-                        }}
                         onEnded={() => {
                             setActiveAnimations(prev => {
                                 const updated = prev.filter(a => a.id !== anim.id);
@@ -240,8 +235,6 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                     <LeafSegment
                         leaf={leaf}
                         totalLeafCount={totalLeafCount}
-                        onVoteReceived={() => {}} // Placeholder since we're using API data
-                        isInitialLoad={isInitialLoad}
                     />
                 </div>
             ))}
@@ -252,8 +245,6 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                     <RootCircle
                         root={root}
                         totalRootCount={totalRootCount}
-                        onVoteReceived={() => {}} // Placeholder since we're using API data
-                        isInitialLoad={isInitialLoad}
                     />
                 </div>
             ))}

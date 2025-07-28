@@ -1,16 +1,13 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 
-const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) => {
+const LeafSegment = ({ leaf, totalLeafCount }) => {
     const [shouldBounce, setShouldBounce] = useState(false);
-    const [isAnimating, setIsAnimating] = useState(false);
     const [clientCount, setClientCount] = useState(0);
-    const animationRef = useRef(null);
     
     // Initialize with the actual value immediately, not null
     const initialCount = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
     const initialCountRef = useRef(initialCount);
-    const previousCountRef = useRef(initialCount);
 
     // Update initialCountRef only if it hasn't been set yet
     useEffect(() => {
@@ -31,8 +28,6 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
             // Only bounce if this event is for this specific leaf
             if (type === 'leaf' && elementId === leaf.id) {
                 triggerBounce(netCountChanged || 1);
-                // Note: We don't trigger the individual leaf animation here anymore
-                // The main water animation is handled by TreeContainer
             }
         };
 
@@ -42,11 +37,6 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
             window.removeEventListener('triggerBounce', handleBounceEvent);
         };
     }, [leaf.id]);
-
-    // Update previous count reference when count changes (but don't trigger animations)
-    useEffect(() => {
-        previousCountRef.current = count;
-    }, [count]);
 
     // Calculate leaf size based on TOTAL leaf count across all leaves
     let leafScale = Math.min(2.6 + ((count / (totalLeafCount || 1)) * 1.5), 3.6);
@@ -62,19 +52,6 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
 
     const handleBounceEnd = () => {
         setShouldBounce(false);
-    };
-
-    // These functions are kept for potential future use but not called automatically
-    const triggerAnimation = () => {
-        if (animationRef.current && !isAnimating) {
-            setIsAnimating(true);
-            animationRef.current.currentTime = 0;
-            animationRef.current.play();
-        }
-    };
-
-    const handleAnimationEnd = () => {
-        setIsAnimating(false);
     };
 
     // Calculate the display count - use initialCountRef.current with fallback
@@ -121,9 +98,6 @@ const LeafSegment = ({ leaf, totalLeafCount, onVoteReceived, isInitialLoad }) =>
                             {displayCount}
                         </div>
                     </div>
-
-                    {/* Individual leaf animation is removed since TreeContainer handles the main animation */}
-                    {/* We could add this back if you want both animations, but typically you'd want one or the other */}
                 </div>
             </div>
         </div>

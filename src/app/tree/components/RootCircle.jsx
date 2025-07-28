@@ -1,16 +1,13 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 
-const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => {
+const RootCircle = ({ root, totalRootCount }) => {
     const [isBouncing, setIsBouncing] = useState(false);
-    const [isAnimating, setIsAnimating] = useState(false);
     const [clientCount, setClientCount] = useState(0);
-    const animationRef = useRef(null);
     
     // Initialize with the actual value immediately, not null
     const initialCount = root.currentCount !== undefined ? root.currentCount : root.initialCount || 0;
     const initialCountRef = useRef(initialCount);
-    const previousCountRef = useRef(initialCount);
 
     // Update initialCountRef only if it hasn't been set yet
     useEffect(() => {
@@ -43,11 +40,6 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
         };
     }, [root.id]);
 
-    // Update previous count reference when count changes (but don't trigger animations)
-    useEffect(() => {
-        previousCountRef.current = count;
-    }, [count]);
-
     // Calculate root size based on TOTAL root count across all roots
     let rootScale = Math.min(1 + ((count / (totalRootCount || 1)) * 1.5), 1.2);
     if (!rootScale || isNaN(rootScale)) {
@@ -60,19 +52,6 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
         setClientCount(prevCount => prevCount + netCountChanged);
         // Reset bounce after animation duration
         setTimeout(() => setIsBouncing(false), 500); // Increased to match leaf duration
-    };
-
-    // These functions are kept for potential future use but not called automatically
-    const triggerAnimation = () => {
-        if (animationRef.current && !isAnimating) {
-            setIsAnimating(true);
-            animationRef.current.currentTime = 0;
-            animationRef.current.play();
-        }
-    };
-
-    const handleAnimationEnd = () => {
-        setIsAnimating(false);
     };
 
     // Calculate final transform including both scale and bounce
@@ -113,9 +92,6 @@ const RootCircle = ({ root, totalRootCount, onVoteReceived, isInitialLoad }) => 
                 <div className="text-[10px] font-medium leading-tight mb-[1px] text-center px-6 text-black">
                     {root.question}
                 </div>
-
-                {/* Individual root animation is removed since TreeContainer handles the main animation */}
-                {/* We could add this back if you want both animations, but typically you'd want one or the other */}
             </div>
         </div>
     );
