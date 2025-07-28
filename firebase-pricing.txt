@@ -1,0 +1,33 @@
+assuming 1 user submit every second 
+    for 500 seconds (n = 500 users total)
+    choose 7 options 
+
+-------------------------------------------------------
+
+questionnaire page:
+    read:
+        1n read (get questions and options)
+    write:
+        7n (qXcY)
+        1n (add to responses) 
+
+tree page:
+    read:
+        1n read (get questions and options)
+    write:
+        // cloud function count for each options(14) collection every seconds for 500 seconds:
+        14 * 500 = 7000
+        
+        // total responses (for live count)
+        500
+    read:
+        1n read (get realtime optionsCount)
+
+
+TOTAL:
+    read: 1n + 1n + 1n = 3n
+    write: 7n + 1n + 7000 + 500 == 8n + 7500
+
+    let n = 500
+        read = 1500
+        write = 4000 + 7500 = 11500
