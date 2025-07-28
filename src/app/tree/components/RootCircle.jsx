@@ -12,7 +12,7 @@ const RootCircle = ({ root, totalRootCount }) => {
     // Update initialCountRef only if it hasn't been set yet
     useEffect(() => {
         if (initialCountRef.current === null || initialCountRef.current === 0) {
-            const initialValue = root.currentCount !== undefined ? root.currentCount : root.initialCount || 0;
+            const initialValue = root.initialCount || 0;
             initialCountRef.current = initialValue;
         }
     }, [root]);

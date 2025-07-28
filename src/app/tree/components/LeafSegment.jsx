@@ -12,7 +12,7 @@ const LeafSegment = ({ leaf, totalLeafCount }) => {
     // Update initialCountRef only if it hasn't been set yet
     useEffect(() => {
         if (initialCountRef.current === null || initialCountRef.current === 0) {
-            const initialValue = leaf.currentCount !== undefined ? leaf.currentCount : leaf.initialCount || 0;
+            const initialValue = leaf.initialCount || 0;
             initialCountRef.current = initialValue;
         }
     }, [leaf]);
