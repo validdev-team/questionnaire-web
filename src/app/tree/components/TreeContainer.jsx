@@ -73,9 +73,6 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         // Update queue with remaining items
         setAnimationQueue(remainingQueue);
         
-        // STAGGERED START: Process animations with delays for continuous flow
-        const STAGGER_DELAY = 400; // 200ms between each animation start
-        
         batchToProcess.forEach((animation, index) => {
             const startDelay = index * STAGGER_DELAY;
             
