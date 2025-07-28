@@ -119,85 +119,93 @@ const TreePage = () => {
         });
     }, [questions]);
 
-    // Memoize calculated values
+    // Memoize calculated values - only when we have real results
     const calculatedValues = useMemo(() => {
-        const effectiveResults = results || { 
-            totalResponses: 0,
-            q1c1: 0, q1c2: 0, q1c3: 0, q1c4: 0, q1c5: 0,
-            q1c6: 0, q1c7: 0, q1c8: 0, q1c9: 0,
-            q2c1: 0, q2c2: 0, q2c3: 0, q2c4: 0, q2c5: 0
-        };
-        
-        const totalResponses = effectiveResults.totalResponses || 0;
+        // Don't provide fallback values - wait for real data
+        if (!results) {
+            return null;
+        }
+
+        const totalResponses = results.totalResponses || 0;
 
         const totalLeafCount =
-            (effectiveResults.q1c1 || 0) +
-            (effectiveResults.q1c2 || 0) +
-            (effectiveResults.q1c3 || 0) +
-            (effectiveResults.q1c4 || 0) +
-            (effectiveResults.q1c5 || 0) +
-            (effectiveResults.q1c6 || 0) +
-            (effectiveResults.q1c7 || 0) +
-            (effectiveResults.q1c8 || 0) +
-            (effectiveResults.q1c9 || 0);
+            (results.q1c1 || 0) +
+            (results.q1c2 || 0) +
+            (results.q1c3 || 0) +
+            (results.q1c4 || 0) +
+            (results.q1c5 || 0) +
+            (results.q1c6 || 0) +
+            (results.q1c7 || 0) +
+            (results.q1c8 || 0) +
+            (results.q1c9 || 0);
 
         const totalRootCount =
-            (effectiveResults.q2c1 || 0) +
-            (effectiveResults.q2c2 || 0) +
-            (effectiveResults.q2c3 || 0) +
-            (effectiveResults.q2c4 || 0) +
-            (effectiveResults.q2c5 || 0);
+            (results.q2c1 || 0) +
+            (results.q2c2 || 0) +
+            (results.q2c3 || 0) +
+            (results.q2c4 || 0) +
+            (results.q2c5 || 0);
 
         return {
-            effectiveResults,
+            effectiveResults: results,
             totalResponses,
             totalLeafCount,
             totalRootCount
         };
     }, [results]);
 
-    // Memoize leaf data with counts and netCountChanged
+    // Memoize leaf data with counts and netCountChanged - only when we have calculated values
     const leafDataWithCounts = useMemo(() => {
+        if (!calculatedValues) {
+            return null; // Return null instead of data with fallback values
+        }
+
         return mergedLeafConfig.map((leaf, index) => {
             const apiKey = `q1c${index + 1}`;
-            const currentCount = calculatedValues.effectiveResults[apiKey] || 0;
+            const currentCount = calculatedValues.effectiveResults[apiKey] || 0; // Now safe to use fallback since we know results exist
             const previousCount = (!isInitialLoad && previousResults) 
                 ? (previousResults[apiKey] || 0) 
-                : 0; // Use 0 for initial load, not currentCount
+                : 0;
             const hasNewVote = !isInitialLoad && currentCount > previousCount;
             const netCountChanged = currentCount - previousCount;
             
             return {
                 ...leaf,
+                initialCount: currentCount,
                 currentCount,
                 hasNewVote,
                 netCountChanged
             };
         });
-    }, [mergedLeafConfig, calculatedValues.effectiveResults, previousResults, isInitialLoad]);
+    }, [mergedLeafConfig, calculatedValues, previousResults, isInitialLoad]);
 
-    // Memoize root data with counts and netCountChanged
+    // Memoize root data with counts and netCountChanged - only when we have calculated values
     const rootDataWithCounts = useMemo(() => {
+        if (!calculatedValues) {
+            return null; // Return null instead of data with fallback values
+        }
+
         return mergedRootConfig.map((root, index) => {
             const apiKey = `q2c${index + 1}`;
-            const currentCount = calculatedValues.effectiveResults[apiKey] || 0;
+            const currentCount = calculatedValues.effectiveResults[apiKey] || 0; // Now safe to use fallback since we know results exist
             const previousCount = (!isInitialLoad && previousResults) 
                 ? (previousResults[apiKey] || 0) 
-                : 0; // Use 0 for initial load, not currentCount
+                : 0;
             const hasNewVote = !isInitialLoad && currentCount > previousCount;
             const netCountChanged = currentCount - previousCount;
             
             return {
                 ...root,
+                initialCount: currentCount,
                 currentCount,
                 hasNewVote,
                 netCountChanged
             };
         });
-    }, [mergedRootConfig, calculatedValues.effectiveResults, previousResults, isInitialLoad]);
+    }, [mergedRootConfig, calculatedValues, previousResults, isInitialLoad]);
 
-    // Early return for loading state
-    if (!questionsLoaded) {
+    // Early return for loading state - now includes waiting for Firebase data
+    if (!questionsLoaded || !calculatedValues || !leafDataWithCounts || !rootDataWithCounts) {
         return (
             <div className="w-full h-screen flex items-center justify-center bg-gradient-to-b from-sky-200 via-sky-250 to-sky-300">
                 <div className="text-lg font-semibold text-gray-700">Loading...</div>
