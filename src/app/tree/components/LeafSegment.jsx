@@ -12,7 +12,8 @@ const LeafSegment = ({ leaf, totalLeafCount }) => {
     // Update initialCountRef only if it hasn't been set yet
     useEffect(() => {
         if (initialCountRef.current === null || initialCountRef.current === 0) {
-            const initialValue = leaf.initialCount || 0;
+            
+            const initialValue = 0;
             initialCountRef.current = initialValue;
         }
     }, [leaf]);
@@ -55,7 +56,7 @@ const LeafSegment = ({ leaf, totalLeafCount }) => {
     };
 
     // Calculate the display count - use initialCountRef.current with fallback
-    const displayCount = (initialCountRef.current || 0) + clientCount;
+    const displayCount = initialCountRef.current + clientCount;
 
     return (
         <div
