@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 
-const LeafSegment = ({ leaf, totalLeafCount }) => {
+const LeafSegment = ({ leaf, totalLeafCount, allLeafData }) => {
     const [shouldBounce, setShouldBounce] = useState(false);
     const [clientCount, setClientCount] = useState(0);
     
@@ -57,6 +57,23 @@ const LeafSegment = ({ leaf, totalLeafCount }) => {
 
     // Calculate the display count - use initialCountRef.current with fallback
     const displayCount = initialCountRef.current + clientCount;
+    
+    // Calculate total votes across all leaves for this question
+    // We need to use the actual current count (including client updates) for this leaf
+    // and the server data for other leaves (since we don't have access to their clientCount)
+    const totalLeafVotes = (allLeafData || []).reduce((sum, leafItem) => {
+        if (leafItem.id === leaf.id) {
+            // For this leaf, use the displayCount which includes client updates
+            return sum + displayCount;
+        } else {
+            // For other leaves, use their current server count
+            const leafDisplayCount = (leafItem.currentCount !== undefined ? leafItem.currentCount : leafItem.initialCount || 0);
+            return sum + leafDisplayCount;
+        }
+    }, 0);
+    
+    // Calculate percentage: (this leaf's votes / total leaf votes) * 100
+    const percentage = totalLeafVotes > 0 ? (displayCount / totalLeafVotes) * 100 : 0;
 
     return (
         <div
@@ -96,7 +113,7 @@ const LeafSegment = ({ leaf, totalLeafCount }) => {
                             {leaf.question}
                         </div>
                         <div className="text-[6px] font-bold">
-                            {displayCount}
+                            {percentage.toFixed(1)}%
                         </div>
                     </div>
                 </div>
