@@ -26,7 +26,7 @@ async function countVotes() {
   return result;
 }
 
-exports.aggregateVotes = onDocumentCreated({region: "asia-southeast1"}, "responses/{id}", async () => {
+exports.aggregateVotes = onDocumentCreated("responses/{id}", async () => {
   const controlSnap = await CONTROL_DOC.get();
   const control = controlSnap.exists ? controlSnap.data() : {};
   const now = Date.now();
