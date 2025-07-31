@@ -1,4 +1,4 @@
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 
@@ -11,6 +11,7 @@ const COLLECTIONS = [
 ];
 
 const CONTROL_DOC = db.collection('results').doc('aggregateControl');
+const RESULT_DOC = db.collection('results').doc('live');
 
 async function countVotes() {
   const result = {};
@@ -26,38 +27,64 @@ async function countVotes() {
   return result;
 }
 
-exports.aggregateVotes = onDocumentCreated({region: "asia-southeast1"}, "responses/{id}", async () => {
-  const controlSnap = await CONTROL_DOC.get();
-  const control = controlSnap.exists ? controlSnap.data() : {};
-  const now = Date.now();
-  const lastRun = control.lastRun || 0;
+// Triggered on each vote submission
+exports.aggregateVotes = onDocumentCreated(
+  { region: "asia-southeast1" },
+  "responses/{id}",
+  async () => {
+    const controlSnap = await CONTROL_DOC.get();
+    const control = controlSnap.exists ? controlSnap.data() : {};
+    const now = Date.now();
+    const lastRun = control.lastRun || 0;
 
-  // Immediate aggregation if more than 1s passed
-  if (now - lastRun >= 1000) {
+    // Immediate aggregation if more than 1s passed
+    if (now - lastRun >= 1000) {
+      const voteData = await countVotes();
+      await RESULT_DOC.set(voteData);
+
+      await CONTROL_DOC.set({
+        lastRun: now,
+        debounceScheduled: false,
+        debouncedAt: null
+      }, { merge: true });
+
+      return;
+    }
+
+    // Otherwise: schedule one final aggregation 1 second later
+    if (!control.debounceScheduled) {
+      await CONTROL_DOC.set({
+        debounceScheduled: true,
+        debouncedAt: now + 1000
+      }, { merge: true });
+    }
+  }
+);
+
+// Triggered when debounce is scheduled
+exports.debouncedAggregation = onDocumentUpdated(
+  { region: "asia-southeast1" },
+  "results/aggregateControl",
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    if (!after || !after.debouncedAt) return;
+
+    const now = Date.now();
+    const triggerTime = after.debouncedAt;
+
+    const wasDebouncedBefore = before?.debouncedAt || 0;
+
+    // Only run if we just scheduled or it's time
+    if ((now < triggerTime) || wasDebouncedBefore === triggerTime) return;
+
     const voteData = await countVotes();
-    await db.collection('results').doc('live').set(voteData);
+    await RESULT_DOC.set(voteData);
 
     await CONTROL_DOC.set({
       lastRun: now,
-      debounceScheduled: false
+      debounceScheduled: false,
+      debouncedAt: null
     }, { merge: true });
-
-    return;
   }
-
-  // Otherwise: schedule one final aggregation 1 second later
-  if (!control.debounceScheduled) {
-    // Set debounceScheduled = true
-    await CONTROL_DOC.set({ debounceScheduled: true }, { merge: true });
-
-    setTimeout(async () => {
-      const voteData = await countVotes();
-      await db.collection('results').doc('live').set(voteData);
-
-      await CONTROL_DOC.set({
-        lastRun: Date.now(),
-        debounceScheduled: false
-      }, { merge: true });
-    }, 1000);
-  }
-});
+);
