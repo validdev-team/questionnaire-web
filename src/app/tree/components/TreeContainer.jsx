@@ -19,7 +19,7 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
     const previousRootDataRef = useRef({});
     
     // Configuration for animation limits
-    const MAX_CONCURRENT_ANIMATIONS = 4; // Maximum animations playing at once
+    const MAX_CONCURRENT_ANIMATIONS = 14; // Maximum animations playing at once
     const ANIMATION_DURATION = 2000; // Duration in milliseconds
     
     // Timing configuration for when water reaches different elements
