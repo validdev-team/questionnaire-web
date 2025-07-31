@@ -4,17 +4,17 @@ import LeafSegment from './LeafSegment';
 import RootCircle from './RootCircle';
 import LoadingTree from './LoadingTree';
 
-const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, rootData, isInitialLoad }) => {
+const TreeContainer = ({ totalLeafCount, totalRootCount, leafData, rootData, isInitialLoad }) => {
     const [activeAnimations, setActiveAnimations] = useState([]);
     const [animationQueue, setAnimationQueue] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     
     // Check if we have all required data
     useEffect(() => {
-        if (leafData && rootData && totalVotes !== undefined) {
+        if (leafData && rootData !== undefined) {
             setIsLoading(false);
         }
-    }, [leafData, rootData, totalVotes]);
+    }, [leafData, rootData]);
     
     const previousLeafDataRef = useRef({});
     const previousRootDataRef = useRef({});
@@ -210,7 +210,7 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
         <div className="
             absolute inset-0 z-30
             w-[1280px] h-[720px]
-            left-1/2 top-[50%] 
+            left-1/2 top-[45%] 
             -translate-x-1/2 -translate-y-1/2
             ">
             {/* Tree Trunk and Roots */}
@@ -267,16 +267,6 @@ const TreeContainer = ({ totalVotes, totalLeafCount, totalRootCount, leafData, r
                         <source src={`/animation/${anim.file.replace('.webm', '.mp4')}`} type="video/mp4" />
                     </video>
                 ))}
-            </div>
-
-            {/* Live Counter - Top Right - z-90 (always on top) */}
-            <div className="absolute top-6 bg-white rounded-2xl flex flex-col shadow-lg items-center right-12 px-6 py-4 z-90">
-                <h3 className="text-gray-600 text-sm font-semibold uppercase tracking-wider">
-                    LIVE COUNT
-                </h3>
-                <div className="text-2xl font-bold text-green-600 place-self-center">
-                    {totalVotes.toLocaleString('en-US')}
-                </div>
             </div>
 
             {/* Render all leaf segments with API data - z-30 */}

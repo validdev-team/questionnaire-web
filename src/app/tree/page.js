@@ -247,13 +247,22 @@ const TreePage = () => {
             {/* Tree Container with memoized props */}
             <TreeContainer 
                 className=""
-                totalVotes={calculatedValues.totalResponses}
                 totalLeafCount={calculatedValues.totalLeafCount}
                 totalRootCount={calculatedValues.totalRootCount}
                 leafData={leafDataWithCounts}
                 rootData={rootDataWithCounts}
                 isInitialLoad={isInitialLoad}
             />
+            
+            {/* Live Counter - Top Right - z-90 (always on top) */}
+            <div className="absolute top-6 bg-white rounded-2xl flex flex-col shadow-lg items-center right-12 px-6 py-4 z-90">
+                <h3 className="text-gray-600 text-sm font-semibold uppercase tracking-wider">
+                    LIVE COUNT
+                </h3>
+                <div className="text-2xl font-bold text-green-600 place-self-center">
+                    {calculatedValues.totalResponses.toLocaleString('en-US')}
+                </div>
+            </div>
         </div>
     );
 };
