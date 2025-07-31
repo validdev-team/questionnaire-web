@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 
-const RootCircle = ({ root, totalRootCount }) => {
+const RootCircle = ({ root, totalRootCount, allRootData }) => {
     const [isBouncing, setIsBouncing] = useState(false);
     const [clientCount, setClientCount] = useState(0);
     
@@ -60,7 +60,24 @@ const RootCircle = ({ root, totalRootCount }) => {
 
     // Calculate the display count - use initialCountRef.current with fallback
     const displayCount = (initialCountRef.current || 0) + clientCount;
-
+    
+    // Calculate total votes across all roots for this question
+    // We need to use the actual current count (including client updates) for this root
+    // and the server data for other roots (since we don't have access to their clientCount)
+    const totalRootVotes = (allRootData || []).reduce((sum, rootItem) => {
+        if (rootItem.id === root.id) {
+            // For this root, use the displayCount which includes client updates
+            return sum + displayCount;
+        } else {
+            // For other roots, use their current server count
+            const rootDisplayCount = (rootItem.currentCount !== undefined ? rootItem.currentCount : rootItem.initialCount || 0);
+            return sum + rootDisplayCount;
+        }
+    }, 0);
+    
+    // Calculate percentage: (this root's votes / total root votes) * 100
+    const percentage = totalRootVotes > 0 ? (displayCount / totalRootVotes) * 100 : 0;
+    
     return (
         <div
             className="absolute"
@@ -86,8 +103,8 @@ const RootCircle = ({ root, totalRootCount }) => {
                 
                 {/* Count Display */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">
-                        {displayCount}
+                    <span className="text-white font-bold text-sm">
+                        {percentage.toFixed(1)}%
                     </span>
                 </div>
                 <div className="text-[10px] font-medium leading-tight mb-[1px] text-center px-6 text-black">

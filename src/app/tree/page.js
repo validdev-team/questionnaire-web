@@ -163,7 +163,7 @@ const TreePage = () => {
     // Memoize leaf data with counts and netCountChanged - only when we have calculated values
     const leafDataWithCounts = useMemo(() => {
         if (!calculatedValues) {
-            return 0; // Return null instead of data with fallback values
+            return null; // Return null instead of 0
         }
 
         return mergedLeafConfig.map((leaf, index) => {
@@ -187,6 +187,10 @@ const TreePage = () => {
 
     // Memoize root data with counts and netCountChanged - only when we have calculated values
     const rootDataWithCounts = useMemo(() => {
+        if (!calculatedValues) {
+            return null;
+        }
+
         return mergedRootConfig.map((root, index) => {
             const apiKey = `q2c${index + 1}`;
             const currentCount = calculatedValues?.effectiveResults?.[apiKey] ?? 0;
@@ -244,7 +248,7 @@ const TreePage = () => {
                 }}
             />
 
-            {/* Tree Container with memoized props */}
+            {/* Tree Container with memoized props - REMOVED voteCount */}
             <TreeContainer 
                 className=""
                 totalLeafCount={calculatedValues.totalLeafCount}

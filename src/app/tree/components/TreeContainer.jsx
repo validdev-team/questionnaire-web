@@ -275,6 +275,7 @@ const TreeContainer = ({ totalLeafCount, totalRootCount, leafData, rootData, isI
                     <LeafSegment
                         leaf={leaf}
                         totalLeafCount={totalLeafCount}
+                        allLeafData={leafData}
                     />
                 </div>
             ))}
@@ -285,6 +286,7 @@ const TreeContainer = ({ totalLeafCount, totalRootCount, leafData, rootData, isI
                     <RootCircle
                         root={root}
                         totalRootCount={totalRootCount}
+                        allRootData={rootData}
                     />
                 </div>
             ))}

@@ -109,6 +109,13 @@ const fetchQuestions = async () => {
                 {resetting ? 'Resetting...' : 'Reset Responses'}
               </button>
               <Link
+                href="/results"
+                className="flex items-center px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white">
+                <button>
+                  Results
+                </button>
+              </Link>
+              <Link
                 href="/tree"
                 className="flex items-center px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white">
                 <button>
